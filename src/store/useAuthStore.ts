@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useEntryStore } from "@/store/useEntryStore";
 import { useSessionStore } from "@/store/useSessionStore";
+import { useUIStore } from "@/store/useUIStore";
 
 interface AuthState {
   session: Session | null;
@@ -15,6 +16,9 @@ export const useAuthStore = create<AuthState>((set) => {
   // Hydrate from existing session on store creation, then subscribe to changes.
   supabase.auth.getSession().then(({ data }) => {
     set({ session: data.session, loading: false });
+  }).catch(() => {
+    useUIStore.getState().showToast("error", "Couldn't connect to authentication service. Please try again.");
+    set({ loading: false });
   });
 
   supabase.auth.onAuthStateChange((_event, session) => {

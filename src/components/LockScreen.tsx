@@ -43,8 +43,7 @@ export function LockScreen() {
 
         <button
           type="button"
-          className="text-muted"
-          style={{ background: "none", border: "none", cursor: "pointer", marginTop: 8, fontSize: "0.875rem" }}
+          className="btn-link text-muted"
           onClick={signOut}
         >
           Sign out
