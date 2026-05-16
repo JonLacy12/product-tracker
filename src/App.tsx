@@ -4,11 +4,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useEntryStore } from "@/store/useEntryStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Dashboard } from "@/components/Dashboard";
 import { LockScreen } from "@/components/LockScreen";
+import { AuthScreen } from "@/components/AuthScreen";
 import { Toasts } from "@/components/Toasts";
 
 const Products = lazy(() => import("@/pages/Products"));
@@ -29,6 +31,8 @@ function PageLoader() {
 }
 
 function AppShell() {
+  const session = useAuthStore((s) => s.session);
+  const authLoading = useAuthStore((s) => s.loading);
   const locked = useSessionStore((s) => s.locked);
   const fetch = useEntryStore((s) => s.fetch);
   useSessionTimeout();
@@ -37,6 +41,8 @@ function AppShell() {
     if (!locked) fetch();
   }, [locked, fetch]);
 
+  if (authLoading) return null;
+  if (!session) return <AuthScreen />;
   if (locked) return <LockScreen />;
 
   return (

@@ -1,6 +1,7 @@
 export interface Entry {
   id: string;
   created_at: string;
+  user_id: string;
   system_id: string;
   facility: string;
   vendor: string;
@@ -11,7 +12,7 @@ export interface Entry {
   patient: string;
 }
 
-export type EntryInsert = Omit<Entry, "id" | "created_at">;
+export type EntryInsert = Omit<Entry, "id" | "created_at" | "user_id">;
 
 export interface GroupSummary {
   name: string;

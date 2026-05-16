@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { useSessionStore } from "@/store/useSessionStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export function LockScreen() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const unlock = useSessionStore((s) => s.unlock);
+  const signOut = useAuthStore((s) => s.signOut);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,6 +40,15 @@ export function LockScreen() {
             Unlock
           </button>
         </form>
+
+        <button
+          type="button"
+          className="text-muted"
+          style={{ background: "none", border: "none", cursor: "pointer", marginTop: 8, fontSize: "0.875rem" }}
+          onClick={signOut}
+        >
+          Sign out
+        </button>
       </div>
     </div>
   );

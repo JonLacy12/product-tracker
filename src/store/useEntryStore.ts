@@ -10,6 +10,7 @@ interface EntryState {
   fetch: () => Promise<void>;
   add: (entry: EntryInsert) => Promise<Entry>;
   remove: (id: string) => Promise<void>;
+  reset: () => void;
 
   vendorSummaries: () => GroupSummary[];
   patientSummaries: () => GroupSummary[];
@@ -62,6 +63,10 @@ export const useEntryStore = create<EntryState>((set, get) => ({
   async remove(id) {
     await api.remove(id);
     set((s) => ({ entries: s.entries.filter((e) => e.id !== id) }));
+  },
+
+  reset() {
+    set({ entries: [], loading: false, error: null });
   },
 
   vendorSummaries: () => groupBy(get().entries, "vendor"),
