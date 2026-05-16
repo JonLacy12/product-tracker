@@ -342,13 +342,6 @@ const SYSTEMS = {
   burch:{label:"Burch",prefix:"burch",facilities:["Northeast Georgia","Northside"],sheets:SHEETS_ALL,csv:"Burch_Products_2026.csv",color:"#6af"},
 };
 const fmt = (n) => "$" + Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-const SEED = [
-{id:"aldridge-mm1",vendor:"MiMedx",facility:"Northeast Georgia",date:"2026-02-11",cost:2160,patient:"Aldridge",productName:"AmnioEffect",productNumber:"LS46-P2511232-001",description:"AmnioEffect 4 0x8 0cm (LS-5460)",quantity:1,dateSubmitted:"2026-02-16",submittedBy:"Cole"},
-{id:"aldridge-mm2",vendor:"MiMedx",facility:"Northeast Georgia",date:"2026-02-11",cost:1095,patient:"Aldridge",productName:"AxioFill",productNumber:"PM051-P2510326-025",description:"AxioFill 500mg (PCM-0500)",quantity:1,dateSubmitted:"2026-02-16",submittedBy:"Cole"},
-{id:"moses-mm1",vendor:"MiMedx",facility:"Northside",date:"2026-02-06",cost:2895,patient:"Moses",productName:"EpiFix",productNumber:"GS44-P2506603-011",description:"EpiFix 4.0x4.0cm (GS-5440)",quantity:1,dateSubmitted:"2026-02-16",submittedBy:""},
-{id:"moses-mm2",vendor:"MiMedx",facility:"Northside",date:"2026-02-06",cost:2895,patient:"Moses",productName:"EpiFix",productNumber:"GS44-P2506603-012",description:"EpiFix 4.0x4.0cm (GS-5440)",quantity:1,dateSubmitted:"2026-02-16",submittedBy:""},
-];
-
 export default function Tracker(){
   const [sys,setSys]=useState("test");
   const [sysReady,setSysReady]=useState(false);
@@ -403,7 +396,7 @@ export default function Tracker(){
   const handlePOUpload=async(e)=>{if(!poTarget)return;const files=Array.from(e.target.files);if(!files.length)return;const newPOs={...poImages};if(!newPOs[poTarget])newPOs[poTarget]=[];for(const file of files){const reader=new FileReader();await new Promise(resolve=>{reader.onload=()=>{newPOs[poTarget].push({name:file.name,data:reader.result,date:new Date().toISOString()});resolve()};reader.readAsDataURL(file)})}await savePOs(newPOs);setPoTarget(null);e.target.value="";notify(`${files.length} PO(s) attached`)};
   const handleBSUpload=async(e)=>{if(!bsTarget)return;const files=Array.from(e.target.files);if(!files.length)return;const newBSs={...bsImages};if(!newBSs[bsTarget])newBSs[bsTarget]=[];for(const file of files){const reader=new FileReader();await new Promise(resolve=>{reader.onload=()=>{newBSs[bsTarget].push({name:file.name,data:reader.result,date:new Date().toISOString()});resolve()};reader.readAsDataURL(file)})}await saveBSs(newBSs);setBsTarget(null);e.target.value="";notify(`${files.length} Bill Sheet(s) attached`)};
   const notify=(m,ok=true)=>{setNote({m,ok});setTimeout(()=>setNote(null),3000)};
-  useEffect(()=>{(async()=>{try{const s=await loadData();if(s&&s.length>0){const ids=new Set(s.map(x=>x.id));const missing=SEED.filter(x=>!ids.has(x.id));if(missing.length>0){const merged=[...s,...missing].sort((a,b)=>(a.date||"").localeCompare(b.date||""));await saveData(merged);setEntries(merged)}else{setEntries(s)}setStatus("connected")}else{const sorted=[...SEED].sort((a,b)=>(a.date||"").localeCompare(b.date||""));await saveData(sorted);setEntries(sorted);setStatus("connected")}}catch{setEntries([...SEED]);setStatus("offline")}})()},[sys]);
+  useEffect(()=>{(async()=>{try{const s=await loadData();if(s&&s.length>0){setEntries(s)}setStatus("connected")}catch{setEntries([]);setStatus("offline")}})()},[sys]);
   useEffect(()=>{const t=setInterval(async()=>{if(status!=="connected")return;try{const s=await loadData();if(s&&s.length!==entries.length)setEntries(s)}catch{}},30000);return()=>clearInterval(t)},[status,entries.length]);
   const save=async(u,m)=>{const chrono=[...u].sort((a,b)=>(a.date||"").localeCompare(b.date||""));setEntries(chrono);if(status==="connected")await saveData(chrono);if(m)notify(m)};
   const refresh=async()=>{try{const s=await loadData();if(s){setEntries(s);notify("Refreshed — "+s.length+" items")}}catch{notify("Failed",false)}};
