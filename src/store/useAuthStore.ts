@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { useEntryStore } from "@/store/useEntryStore";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useUIStore } from "@/store/useUIStore";
 
@@ -24,7 +23,6 @@ export const useAuthStore = create<AuthState>((set) => {
   supabase.auth.onAuthStateChange((_event, session) => {
     set({ session });
     if (!session) {
-      useEntryStore.getState().reset();
       useSessionStore.getState().lock();
     }
   });

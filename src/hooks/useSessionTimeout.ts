@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useSessionStore } from "@/store/useSessionStore";
-import { SESSION_TIMEOUT_MS } from "@/lib/constants";
 
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 const EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
 const CHECK_INTERVAL = 10_000;
 
