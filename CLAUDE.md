@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm run dev` — start Vite dev server
-- `npm run build` — production build to `dist/`
-- `npm run preview` — preview the production build
-- `npx tsc --noEmit` — type-check (no test suite or linter is configured)
-
-iOS (Capacitor) wrap exists under `ios/`; sync after a web build with `npx cap sync ios`.
+- `pnpm dev` — start Vite dev server
+- `pnpm build` — production build to `dist/`
+- `pnpm preview` — preview the production build
+- `npx tsc --noEmit` — type-check
+- `pnpm lint` — run ESLint
+- `pnpm lint:fix` — run ESLint with auto-fix
+- `pnpm format` — run Prettier (writes files)
+- `pnpm format:check` — run Prettier (check only, no writes)
 
 ## Environment
 
@@ -35,6 +37,32 @@ Single-page React 18 + TypeScript app over Supabase. One table (`entries`) is th
 **Forms.** `react-hook-form` + Zod via `@hookform/resolvers/zod`. `AddEntry.tsx` is the canonical pattern — define the Zod schema, infer the form type, pass through `zodResolver`. The barcode scanner (`@zxing/browser`) is wired into Add Entry's item-number field.
 
 **Toasts/UI.** `useUIStore` exposes `showToast(type, message)`; toasts auto-dismiss after 3s. Always surface API errors through this rather than `console.error` or thrown errors that propagate to the boundary.
+
+## iOS Deployment
+
+The app ships to iOS as a Capacitor-wrapped Vite web build. The native project lives under `ios/`; open `ios/App/App.xcworkspace` in Xcode (not the `.xcodeproj`).
+
+**Prerequisites (one-time)**
+
+- Xcode installed (`xcodebuild -version` to verify)
+- CocoaPods installed: `brew install cocoapods`
+- Run `cd ios/App && pod install` after first clone or after adding new Capacitor plugins
+
+**Full deploy flow**
+
+```
+pnpm build          # build web bundle → dist/
+npx cap sync ios    # copy dist/ into ios/App/App/public/ and run pod install
+npx cap open ios    # open Xcode
+```
+
+In Xcode: select the `App` target → Signing & Capabilities → set your Team → select connected device → Run.
+
+**Bundle ID:** `com.weekthink.producttracker`
+
+**Safe area handling.** `index.html` sets `viewport-fit=cover`. The Tracker root container applies `paddingTop: env(safe-area-inset-top)` and `paddingBottom: env(safe-area-inset-bottom)` so the header clears the Dynamic Island / status bar on all iPhone models. `html { background: #08080e }` in `index.css` ensures the letterbox area matches the app background.
+
+**Linting / formatting.** ESLint (`eslint.config.js`) and Prettier (`.prettierrc`) are configured. Run `pnpm lint && pnpm format:check` before a build if you've made source changes.
 
 ## Conventions
 
