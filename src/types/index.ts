@@ -12,7 +12,7 @@ export interface Entry {
   patient: string;
 }
 
-export type EntryInsert = Omit<Entry, "id" | "created_at" | "user_id">;
+export type EntryInsert = Omit<Entry, 'id' | 'created_at' | 'user_id'>;
 
 export interface GroupSummary {
   name: string;
@@ -30,6 +30,6 @@ export interface ProductSummary {
 
 export interface Toast {
   id: string;
-  type: "success" | "error" | "info";
+  type: 'success' | 'error' | 'info';
   message: string;
 }

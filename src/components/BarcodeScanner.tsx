@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
-import type { Result } from "@zxing/library";
+import { useEffect, useRef, useState } from 'react';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import type { Result } from '@zxing/library';
 
 interface BarcodeScannerProps {
   onScan: (value: string) => void;
@@ -28,30 +28,30 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     async function start() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter((d) => d.kind === "videoinput");
+        const cameras = devices.filter((d) => d.kind === 'videoinput');
 
         if (cameras.length === 0) {
-          setError("No camera found on this device.");
+          setError('No camera found on this device.');
           return;
         }
 
         const back = cameras.find((d) => {
           const label = d.label.toLowerCase();
-          return label.includes("back") || label.includes("rear") || label.includes("environment");
+          return label.includes('back') || label.includes('rear') || label.includes('environment');
         });
         if (cancelled || !videoRef.current) return;
 
         const controls = await reader.decodeFromVideoDevice(
           back?.deviceId ?? cameras[0].deviceId,
           videoRef.current,
-          handleResult,
+          handleResult
         );
         controlsRef.current = controls;
       } catch (err) {
-        if (err instanceof DOMException && err.name === "NotAllowedError") {
-          setError("Camera permission denied. Please allow camera access in Settings.");
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          setError('Camera permission denied. Please allow camera access in Settings.');
         } else {
-          setError("Failed to start camera. Please try again.");
+          setError('Failed to start camera. Please try again.');
         }
       }
     }
@@ -69,14 +69,18 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       <div className="scanner-container">
         <div className="scanner-header">
           <span>Scan Barcode</span>
-          <button className="scanner-close" onClick={onClose}>✕</button>
+          <button className="scanner-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="scanner-viewfinder">
           {error ? (
             <div className="scanner-error">
               <p>{error}</p>
-              <button className="btn btn-primary" onClick={onClose}>Close</button>
+              <button className="btn btn-primary" onClick={onClose}>
+                Close
+              </button>
             </div>
           ) : (
             <>

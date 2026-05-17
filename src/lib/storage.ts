@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from '@/lib/supabase';
 
 interface StorageValue {
   value: string;
@@ -35,7 +35,7 @@ interface DbRow {
   submitted_by?: string | null;
 }
 
-const PRODUCTS_SUFFIX = "-products-v3";
+const PRODUCTS_SUFFIX = '-products-v3';
 
 function toDbRow(e: RawEntry, systemId: string, userId: string) {
   return {
@@ -48,7 +48,7 @@ function toDbRow(e: RawEntry, systemId: string, userId: string) {
     cost: Number(e.cost),
     patient: e.patient,
     product_name: e.productName,
-    item_number: e.productNumber ?? "",
+    item_number: e.productNumber ?? '',
     description: e.description ?? null,
     quantity: Number(e.quantity) || 1,
     date_submitted: e.dateSubmitted || null,
@@ -66,10 +66,10 @@ function fromDbRow(r: DbRow) {
     patient: r.patient,
     productName: r.product_name,
     productNumber: r.item_number,
-    description: r.description ?? "",
+    description: r.description ?? '',
     quantity: r.quantity ?? 1,
-    dateSubmitted: r.date_submitted ?? "",
-    submittedBy: r.submitted_by ?? "",
+    dateSubmitted: r.date_submitted ?? '',
+    submittedBy: r.submitted_by ?? '',
   };
 }
 
@@ -79,7 +79,7 @@ function systemPrefixFromKey(key: string): string {
 
 async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
-  if (!data.user) throw new Error("no auth");
+  if (!data.user) throw new Error('no auth');
   return data.user.id;
 }
 
@@ -88,23 +88,23 @@ async function get(key: string, _scoped?: boolean): Promise<StorageValue | null>
     const systemId = systemPrefixFromKey(key);
     const uid = await currentUserId();
     const { data, error } = await supabase
-      .from("entries")
-      .select("*")
-      .eq("user_id", uid)
-      .eq("system_id", systemId);
+      .from('entries')
+      .select('*')
+      .eq('user_id', uid)
+      .eq('system_id', systemId);
     if (error || !data) return null;
     return { value: JSON.stringify(data.map(fromDbRow)) };
   }
 
   const uid = await currentUserId();
   const { data, error } = await supabase
-    .from("kv_store")
-    .select("value")
-    .eq("user_id", uid)
-    .eq("key", key)
+    .from('kv_store')
+    .select('value')
+    .eq('user_id', uid)
+    .eq('key', key)
     .maybeSingle();
   if (error || !data) return null;
-  return { value: typeof data.value === "string" ? data.value : JSON.stringify(data.value) };
+  return { value: typeof data.value === 'string' ? data.value : JSON.stringify(data.value) };
 }
 
 async function set(key: string, value: string, _scoped?: boolean): Promise<void> {
@@ -116,10 +116,10 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
     const incomingIds = new Set(rows.map((r) => r.client_id));
 
     const { data: existing } = await supabase
-      .from("entries")
-      .select("client_id")
-      .eq("user_id", uid)
-      .eq("system_id", systemId);
+      .from('entries')
+      .select('client_id')
+      .eq('user_id', uid)
+      .eq('system_id', systemId);
 
     const toDelete = (existing ?? [])
       .map((r: { client_id: string }) => r.client_id)
@@ -127,33 +127,31 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
 
     if (toDelete.length) {
       await supabase
-        .from("entries")
+        .from('entries')
         .delete()
-        .eq("user_id", uid)
-        .eq("system_id", systemId)
-        .in("client_id", toDelete);
+        .eq('user_id', uid)
+        .eq('system_id', systemId)
+        .in('client_id', toDelete);
     }
 
     if (rows.length) {
-      await supabase
-        .from("entries")
-        .upsert(rows, { onConflict: "user_id,system_id,client_id" });
+      await supabase.from('entries').upsert(rows, { onConflict: 'user_id,system_id,client_id' });
     }
     return;
   }
 
   const uid = await currentUserId();
   await supabase
-    .from("kv_store")
+    .from('kv_store')
     .upsert(
       { user_id: uid, key, value: JSON.parse(value), updated_at: new Date().toISOString() },
-      { onConflict: "user_id,key" }
+      { onConflict: 'user_id,key' }
     );
 }
 
 async function list(): Promise<string[]> {
   const uid = await currentUserId();
-  const { data } = await supabase.from("kv_store").select("key").eq("user_id", uid);
+  const { data } = await supabase.from('kv_store').select('key').eq('user_id', uid);
   return (data ?? []).map((r: { key: string }) => r.key);
 }
 
@@ -161,10 +159,10 @@ async function del(key: string): Promise<void> {
   const uid = await currentUserId();
   if (key.endsWith(PRODUCTS_SUFFIX)) {
     const systemId = systemPrefixFromKey(key);
-    await supabase.from("entries").delete().eq("user_id", uid).eq("system_id", systemId);
+    await supabase.from('entries').delete().eq('user_id', uid).eq('system_id', systemId);
     return;
   }
-  await supabase.from("kv_store").delete().eq("user_id", uid).eq("key", key);
+  await supabase.from('kv_store').delete().eq('user_id', uid).eq('key', key);
 }
 
 export const storage = { get, set, list, delete: del };

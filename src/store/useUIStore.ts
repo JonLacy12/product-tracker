@@ -1,9 +1,9 @@
-import { create } from "zustand";
-import type { Toast } from "@/types";
+import { create } from 'zustand';
+import type { Toast } from '@/types';
 
 interface UIState {
   toasts: Toast[];
-  showToast: (type: Toast["type"], message: string) => void;
+  showToast: (type: Toast['type'], message: string) => void;
   dismissToast: (id: string) => void;
 }
 

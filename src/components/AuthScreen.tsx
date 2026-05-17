@@ -1,12 +1,12 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useUIStore } from "@/store/useUIStore";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useUIStore } from '@/store/useUIStore';
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -23,7 +23,7 @@ export function AuthScreen() {
 
   async function onSubmit(data: FormData) {
     const errorMsg = await signIn(data.email, data.password);
-    if (errorMsg) showToast("error", errorMsg);
+    if (errorMsg) showToast('error', errorMsg);
   }
 
   return (
@@ -35,24 +35,24 @@ export function AuthScreen() {
         <form onSubmit={handleSubmit(onSubmit)} className="lock-form">
           <input
             type="email"
-            className={`input ${errors.email ? "input-error" : ""}`}
+            className={`input ${errors.email ? 'input-error' : ''}`}
             placeholder="Email"
             autoComplete="email"
-            {...register("email")}
+            {...register('email')}
           />
           {errors.email && <p className="text-error">{errors.email.message}</p>}
 
           <input
             type="password"
-            className={`input ${errors.password ? "input-error" : ""}`}
+            className={`input ${errors.password ? 'input-error' : ''}`}
             placeholder="Password"
             autoComplete="current-password"
-            {...register("password")}
+            {...register('password')}
           />
           {errors.password && <p className="text-error">{errors.password.message}</p>}
 
           <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in…" : "Sign in"}
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

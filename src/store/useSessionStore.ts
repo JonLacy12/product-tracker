@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface SessionState {
   locked: boolean;
@@ -8,7 +8,7 @@ interface SessionState {
   unlock: (attempt: string) => boolean;
 }
 
-const DEFAULT_PIN = import.meta.env.VITE_APP_PIN ?? "1234";
+const DEFAULT_PIN = import.meta.env.VITE_APP_PIN ?? '1234';
 
 export const useSessionStore = create<SessionState>()(
   persist(
@@ -27,9 +27,9 @@ export const useSessionStore = create<SessionState>()(
       },
     }),
     {
-      name: "pt-session",
+      name: 'pt-session',
       storage: createJSONStorage(() => sessionStorage),
       partialize: (s) => ({ locked: s.locked }),
-    },
-  ),
+    }
+  )
 );

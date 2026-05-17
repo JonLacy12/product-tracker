@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
-import { useSessionStore } from "@/store/useSessionStore";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useState, type FormEvent } from 'react';
+import { useSessionStore } from '@/store/useSessionStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function LockScreen() {
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const unlock = useSessionStore((s) => s.unlock);
   const signOut = useAuthStore((s) => s.signOut);
@@ -14,7 +14,7 @@ export function LockScreen() {
       setError(false);
     } else {
       setError(true);
-      setPin("");
+      setPin('');
     }
   }
 
@@ -29,7 +29,7 @@ export function LockScreen() {
             type="password"
             inputMode="numeric"
             maxLength={6}
-            className={`input pin-input ${error ? "input-error" : ""}`}
+            className={`input pin-input ${error ? 'input-error' : ''}`}
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             placeholder="••••"
@@ -41,11 +41,7 @@ export function LockScreen() {
           </button>
         </form>
 
-        <button
-          type="button"
-          className="btn-link text-muted"
-          onClick={signOut}
-        >
+        <button type="button" className="btn-link text-muted" onClick={signOut}>
           Sign out
         </button>
       </div>

@@ -1,9 +1,9 @@
-import { useUIStore } from "@/store/useUIStore";
+import { useUIStore } from '@/store/useUIStore';
 
 const ICONS: Record<string, string> = {
-  success: "✓",
-  error: "✕",
-  info: "ℹ",
+  success: '✓',
+  error: '✕',
+  info: 'ℹ',
 };
 
 export function Toasts() {

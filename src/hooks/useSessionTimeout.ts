@@ -1,8 +1,8 @@
-import { useEffect, useRef, useCallback } from "react";
-import { useSessionStore } from "@/store/useSessionStore";
+import { useEffect, useRef, useCallback } from 'react';
+import { useSessionStore } from '@/store/useSessionStore';
 
 const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
-const EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
+const EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const;
 const CHECK_INTERVAL = 10_000;
 
 export function useSessionTimeout() {
@@ -24,7 +24,10 @@ export function useSessionTimeout() {
     }
 
     const interval = setInterval(() => {
-      if (lastActivity.current !== null && Date.now() - lastActivity.current >= SESSION_TIMEOUT_MS) {
+      if (
+        lastActivity.current !== null &&
+        Date.now() - lastActivity.current >= SESSION_TIMEOUT_MS
+      ) {
         lock();
       }
     }, CHECK_INTERVAL);
