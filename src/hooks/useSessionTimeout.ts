@@ -8,7 +8,7 @@ const CHECK_INTERVAL = 10_000;
 export function useSessionTimeout() {
   const locked = useSessionStore((s) => s.locked);
   const lock = useSessionStore((s) => s.lock);
-  const lastActivity = useRef(Date.now());
+  const lastActivity = useRef<number | null>(null);
 
   const resetTimer = useCallback(() => {
     lastActivity.current = Date.now();
@@ -17,12 +17,14 @@ export function useSessionTimeout() {
   useEffect(() => {
     if (locked) return;
 
+    lastActivity.current = Date.now();
+
     for (const event of EVENTS) {
       window.addEventListener(event, resetTimer, { passive: true });
     }
 
     const interval = setInterval(() => {
-      if (Date.now() - lastActivity.current >= SESSION_TIMEOUT_MS) {
+      if (lastActivity.current !== null && Date.now() - lastActivity.current >= SESSION_TIMEOUT_MS) {
         lock();
       }
     }, CHECK_INTERVAL);

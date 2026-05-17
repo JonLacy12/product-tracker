@@ -4,9 +4,40 @@ interface StorageValue {
   value: string;
 }
 
+interface RawEntry {
+  id: string;
+  vendor: string;
+  facility: string;
+  date: string;
+  cost: number | string;
+  patient: string;
+  productName: string;
+  productNumber?: string;
+  description?: string;
+  quantity?: number | string;
+  dateSubmitted?: string;
+  submittedBy?: string;
+}
+
+interface DbRow {
+  client_id?: string;
+  id?: string;
+  vendor: string;
+  facility: string;
+  date: string;
+  cost: number;
+  patient: string;
+  product_name: string;
+  item_number: string;
+  description?: string | null;
+  quantity?: number;
+  date_submitted?: string | null;
+  submitted_by?: string | null;
+}
+
 const PRODUCTS_SUFFIX = "-products-v3";
 
-function toDbRow(e: any, systemId: string, userId: string) {
+function toDbRow(e: RawEntry, systemId: string, userId: string) {
   return {
     user_id: userId,
     system_id: systemId,
@@ -25,7 +56,7 @@ function toDbRow(e: any, systemId: string, userId: string) {
   };
 }
 
-function fromDbRow(r: any) {
+function fromDbRow(r: DbRow) {
   return {
     id: r.client_id ?? r.id,
     vendor: r.vendor,
@@ -80,8 +111,8 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
   if (key.endsWith(PRODUCTS_SUFFIX)) {
     const systemId = systemPrefixFromKey(key);
     const uid = await currentUserId();
-    const incoming: any[] = JSON.parse(value);
-    const rows = incoming.map((e) => toDbRow(e, systemId, uid));
+    const incoming = JSON.parse(value) as unknown[];
+    const rows = incoming.map((e) => toDbRow(e as RawEntry, systemId, uid));
     const incomingIds = new Set(rows.map((r) => r.client_id));
 
     const { data: existing } = await supabase
@@ -91,7 +122,7 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
       .eq("system_id", systemId);
 
     const toDelete = (existing ?? [])
-      .map((r: any) => r.client_id as string)
+      .map((r: { client_id: string }) => r.client_id)
       .filter((cid) => cid && !incomingIds.has(cid));
 
     if (toDelete.length) {
@@ -123,7 +154,7 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
 async function list(): Promise<string[]> {
   const uid = await currentUserId();
   const { data } = await supabase.from("kv_store").select("key").eq("user_id", uid);
-  return (data ?? []).map((r: any) => r.key as string);
+  return (data ?? []).map((r: { key: string }) => r.key);
 }
 
 async function del(key: string): Promise<void> {

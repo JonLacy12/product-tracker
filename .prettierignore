@@ -1,0 +1,7 @@
+dist
+node_modules
+node_modules_corrupt
+ios/
+android/
+*.lock
+pnpm-lock.yaml
