@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Data Model Policy (Plan B — No PHI)
+
+This app does NOT store patient health information (PHI). It is not HIPAA-compliant. The `case_label` field on entries is an optional freeform string the rep uses as their own shorthand ("Case A", "Tue OR", etc.) — it must never contain patient identifiers (names, initials, MRN, DOB).
+
+Architectural decisions that flow from this:
+- Schema has no patient_name, patient_initials, MRN, or DOB columns.
+- UI helper text under the case_label input warns users not to enter PHI.
+- A future HIPAA tier is planned as a separate enterprise offering with its own Supabase project + BAA — not by adding PHI columns to this schema.
+
 ## Commands
 
 - `pnpm dev` — start Vite dev server

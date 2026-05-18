@@ -1416,7 +1416,7 @@ export default function Tracker() {
     vendor: 'Xtant',
     date: '',
     cost: '',
-    patient: '',
+    case_label: '',
     facility: 'Northside',
     productName: '',
     productNumber: '',
@@ -1437,7 +1437,7 @@ export default function Tracker() {
   const bsFileRef = useRef(null);
   const [bsTarget, setBsTarget] = useState(null);
   const [snapOpen, setSnapOpen] = useState(false);
-  const [snapForm, setSnapForm] = useState({ patient: '', date: '', vendor: '', docType: 'bs' });
+  const [snapForm, setSnapForm] = useState({ case_label: '', date: '', vendor: '', docType: 'bs' });
   const [inbox, setInbox] = useState([]);
   const inboxRef = useRef(null);
   const snapFileRef = useRef(null);
@@ -1760,7 +1760,6 @@ export default function Tracker() {
       !form.vendor ||
       !form.date ||
       !form.cost ||
-      !form.patient ||
       !form.productName ||
       !form.facility
     ) {
@@ -1773,7 +1772,7 @@ export default function Tracker() {
       facility: form.facility,
       date: form.date,
       cost: Number(form.cost),
-      patient: form.patient,
+      case_label: form.case_label,
       productName: form.productName,
       productNumber: form.productNumber,
       description: form.description,
@@ -1785,7 +1784,7 @@ export default function Tracker() {
     setForm((f) => ({
       ...f,
       cost: '',
-      patient: '',
+      case_label: '',
       productName: '',
       productNumber: '',
       description: '',
@@ -1801,11 +1800,11 @@ export default function Tracker() {
   };
   const csv = () => {
     const c =
-      'Vendor,Facility,Date,Cost,Patient,Product,Item#,Description,Qty,DateSubmitted,SubmittedBy\n' +
+      'Vendor,Facility,Date,Cost,Case Label,Product,Item#,Description,Qty,DateSubmitted,SubmittedBy\n' +
       entries
         .map(
           (e) =>
-            `"${e.vendor}","${e.facility}","${e.date}",${e.cost},"${e.patient}","${e.productName}","${e.productNumber || ''}","${e.description || ''}",${e.quantity || 1},"${e.dateSubmitted || ''}","${e.submittedBy || ''}"`
+            `"${e.vendor}","${e.facility}","${e.date}",${e.cost},"${e.case_label || ''}","${e.productName}","${e.productNumber || ''}","${e.description || ''}",${e.quantity || 1},"${e.dateSubmitted || ''}","${e.submittedBy || ''}"`
         )
         .join('\n');
     const a = document.createElement('a');
@@ -1841,7 +1840,7 @@ export default function Tracker() {
   };
   const exportReconciliation = () => {
     const rows = [
-      'Status,Vendor,Date,Product,Sale Amount,Rate %,Expected Commission,Received Commission,Difference,Patient',
+      'Status,Vendor,Date,Product,Sale Amount,Rate %,Expected Commission,Received Commission,Difference,Case Label',
     ];
     const fe = entries.filter(
       (e) =>
@@ -1892,7 +1891,7 @@ export default function Tracker() {
       }
       const diff = received - exp;
       rows.push(
-        `"${status}","${e.vendor}","${e.date}","${e.productName}",${e.cost},${rate || 0},${exp.toFixed(2)},${received.toFixed(2)},${diff.toFixed(2)},"${e.patient}"`
+        `"${status}","${e.vendor}","${e.date}","${e.productName}",${e.cost},${rate || 0},${exp.toFixed(2)},${received.toFixed(2)},${diff.toFixed(2)},"${e.case_label || ''}"`
       );
     });
     cr.filter((r) => !matchedIds.has(r.id)).forEach((r) => {
@@ -1909,7 +1908,7 @@ export default function Tracker() {
   if (q) {
     const lq = q.toLowerCase();
     fil = fil.filter((e) =>
-      [e.productName, e.productNumber, e.patient, e.description, e.vendor, e.facility].some((x) =>
+      [e.productName, e.productNumber, e.case_label, e.description, e.vendor, e.facility].some((x) =>
         x?.toLowerCase().includes(lq)
       )
     );
@@ -2122,7 +2121,7 @@ export default function Tracker() {
           {[
             { k: 'products', l: 'Products', e: '📦' },
             { k: 'add', l: 'Add', e: '➕' },
-            { k: 'patients', l: 'Patients', e: '🧑‍⚕️' },
+            { k: 'patients', l: 'Cases', e: '🗂️' },
             { k: 'mimedx', l: 'MiMedx', e: '🩹' },
             { k: 'commission', l: 'Commission', e: '💵' },
             { k: 'prices', l: 'Price Sheets', e: '💰' },
@@ -2230,7 +2229,7 @@ export default function Tracker() {
                           'DESCRIPTION',
                           'QTY',
                           'COST',
-                          'PATIENT',
+                          'CASE LABEL',
                           'DATE SUBMITTED',
                           'BY',
                           '',
@@ -2340,7 +2339,7 @@ export default function Tracker() {
                           >
                             {fmt(e.cost)}
                           </td>
-                          <td style={{ padding: '7px 8px', fontSize: 13 }}>{e.patient}</td>
+                          <td style={{ padding: '7px 8px', fontSize: 13 }}>{e.case_label || '—'}</td>
                           <td
                             style={{
                               padding: '7px 8px',
@@ -2457,14 +2456,17 @@ export default function Tracker() {
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: '#f80', marginBottom: 4, fontWeight: 700 }}>
-                    PATIENT ID *
+                    CASE LABEL
                   </div>
                   <input
-                    placeholder="Initials"
-                    value={form.patient}
-                    onChange={(e) => setForm((f) => ({ ...f, patient: e.target.value }))}
+                    placeholder="e.g. Case A, Tue OR"
+                    value={form.case_label}
+                    onChange={(e) => setForm((f) => ({ ...f, case_label: e.target.value }))}
                     style={S.inp}
                   />
+                  <div style={{ fontSize: 9, color: '#445', marginTop: 4 }}>
+                    Optional. Do not enter patient identifiers (names, initials, MRN, DOB).
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -2618,11 +2620,11 @@ export default function Tracker() {
                   </button>
                 </div>
               )}
-              {form.vendor && form.patient && form.date && (
+              {form.vendor && form.date && (
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                   <button
                     onClick={() => {
-                      const vKey = form.patient + '|' + form.date + '|' + form.vendor;
+                      const vKey = (form.case_label || '') + '|' + form.date + '|' + form.vendor;
                       setBsTarget(vKey);
                       setTimeout(() => bsFileRef.current?.click(), 50);
                     }}
@@ -2647,7 +2649,7 @@ export default function Tracker() {
                   </button>
                   <button
                     onClick={() => {
-                      const vKey = form.patient + '|' + form.date + '|' + form.vendor;
+                      const vKey = (form.case_label || '') + '|' + form.date + '|' + form.vendor;
                       setPoTarget(vKey);
                       setTimeout(() => poFileRef.current?.click(), 50);
                     }}
@@ -2847,10 +2849,10 @@ export default function Tracker() {
             {(() => {
               const cases = {};
               entries.forEach((e) => {
-                const k = e.patient + '|' + e.date;
+                const k = (e.case_label || '') + '|' + e.date;
                 if (!cases[k])
                   cases[k] = {
-                    patient: e.patient,
+                    case_label: e.case_label,
                     date: e.date,
                     facility: e.facility,
                     items: [],
@@ -2869,11 +2871,11 @@ export default function Tracker() {
                 return (
                   <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>🧑‍⚕️</div>
-                    <div style={{ fontWeight: 600 }}>No patient data yet</div>
+                    <div style={{ fontWeight: 600 }}>No case data yet</div>
                   </div>
                 );
               return sorted.map((c, ci) => {
-                const key = c.patient + '|' + c.date;
+                const key = (c.case_label || '') + '|' + c.date;
                 const isOpen = openPatients[key] || false;
                 const vg = {};
                 c.items.forEach((e) => {
@@ -2920,7 +2922,7 @@ export default function Tracker() {
                         </span>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 15, fontWeight: 700 }}>{c.patient}</span>
+                            <span style={{ fontSize: 15, fontWeight: 700 }}>{c.case_label || '—'}</span>
                             {totalDocs > 0 && (
                               <span
                                 style={{
@@ -3017,7 +3019,7 @@ export default function Tracker() {
                                           id: vKey,
                                           idx: 0,
                                           data: vendorPOs[0]?.data,
-                                          name: vendor + ' — ' + c.patient,
+                                          name: vendor + ' — ' + (c.case_label || '—'),
                                           docType: 'po',
                                         });
                                       } else {
@@ -3058,7 +3060,7 @@ export default function Tracker() {
                                           id: vKey,
                                           idx: 0,
                                           data: vendorBSs[0]?.data,
-                                          name: vendor + ' — ' + c.patient,
+                                          name: vendor + ' — ' + (c.case_label || '—'),
                                           docType: 'bs',
                                         });
                                       } else {
@@ -3188,7 +3190,7 @@ export default function Tracker() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                       <thead>
                         <tr>
-                          {['PATIENT', 'DATE', 'ITEM # (LOT)', 'FACILITY', 'COST'].map((h, i) => (
+                          {['CASE LABEL', 'DATE', 'ITEM # (LOT)', 'FACILITY', 'COST'].map((h, i) => (
                             <th
                               key={i}
                               style={{
@@ -3218,7 +3220,7 @@ export default function Tracker() {
                             style={{ borderBottom: '1px solid #0e0e18' }}
                           >
                             <td style={{ padding: '10px 12px', fontSize: 14, fontWeight: 700 }}>
-                              {e.patient}
+                              {e.case_label || '—'}
                             </td>
                             <td
                               style={{
@@ -5008,15 +5010,15 @@ export default function Tracker() {
                   {fe.length > 0 && (
                     <div style={{ ...S.card, marginTop: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
-                        Patient Cases — {mLabel}
+                        Cases — {mLabel}
                       </div>
                       {(() => {
                         const pc = {};
                         fe.forEach((e) => {
-                          const k = e.patient + '|' + e.date;
+                          const k = (e.case_label || '') + '|' + e.date;
                           if (!pc[k])
                             pc[k] = {
-                              patient: e.patient,
+                              case_label: e.case_label,
                               date: e.date,
                               facility: e.facility,
                               cost: 0,
@@ -5042,7 +5044,7 @@ export default function Tracker() {
                               }}
                             >
                               <span style={{ fontSize: 14, fontWeight: 700, width: 40 }}>
-                                {p.patient}
+                                {p.case_label || '—'}
                               </span>
                               <span
                                 style={{
@@ -5417,20 +5419,20 @@ export default function Tracker() {
                 📷 Attach to Case
               </div>
               <div style={{ fontSize: 11, color: '#556', marginBottom: 16 }}>
-                Attach a file directly to an existing patient/vendor
+                Attach a file directly to an existing case/vendor
               </div>
               {(() => {
-                const pts = [...new Set(entries.map((e) => e.patient + '|' + e.date))].map((k) => {
+                const pts = [...new Set(entries.map((e) => (e.case_label || '') + '|' + e.date))].map((k) => {
                   const [p, d] = k.split('|');
                   return { label: p + ' — ' + d, value: k };
                 });
-                const isNew = snapForm.patient === '__new__';
+                const isNew = snapForm.case_label === '__new__';
                 const vendorsInCase =
-                  snapForm.patient && !isNew
+                  snapForm.case_label && !isNew
                     ? [
                         ...new Set(
                           entries
-                            .filter((e) => e.patient + '|' + e.date === snapForm.patient)
+                            .filter((e) => (e.case_label || '') + '|' + e.date === snapForm.case_label)
                             .map((e) => e.vendor)
                         ),
                       ]
@@ -5441,29 +5443,29 @@ export default function Tracker() {
                       <div
                         style={{ fontSize: 10, fontWeight: 700, color: '#a6f', marginBottom: 4 }}
                       >
-                        PATIENT
+                        CASE LABEL
                       </div>
                       <select
-                        value={snapForm.patient}
+                        value={snapForm.case_label}
                         onChange={(e) =>
                           setSnapForm((f) => ({
                             ...f,
-                            patient: e.target.value,
+                            case_label: e.target.value,
                             vendor: '',
-                            newPatient: '',
+                            newCaseLabel: '',
                             newDate: '',
                             newVendor: '',
                           }))
                         }
                         style={S.inp}
                       >
-                        <option value="">Select patient...</option>
+                        <option value="">Select case...</option>
                         {pts.map((p) => (
                           <option key={p.value} value={p.value}>
                             {p.label}
                           </option>
                         ))}
-                        <option value="__new__">＋ New Patient</option>
+                        <option value="__new__">＋ New Case</option>
                       </select>
                     </div>
                     {isNew && (
@@ -5484,13 +5486,13 @@ export default function Tracker() {
                               marginBottom: 4,
                             }}
                           >
-                            PATIENT INITIALS
+                            CASE LABEL
                           </div>
                           <input
-                            placeholder="e.g. JD"
-                            value={snapForm.newPatient || ''}
+                            placeholder="e.g. Case A"
+                            value={snapForm.newCaseLabel || ''}
                             onChange={(e) =>
-                              setSnapForm((f) => ({ ...f, newPatient: e.target.value }))
+                              setSnapForm((f) => ({ ...f, newCaseLabel: e.target.value }))
                             }
                             style={S.inp}
                           />
@@ -5540,7 +5542,7 @@ export default function Tracker() {
                         </select>
                       </div>
                     )}
-                    {!isNew && snapForm.patient && (
+                    {!isNew && snapForm.case_label && (
                       <div style={{ marginBottom: 10 }}>
                         <div
                           style={{ fontSize: 10, fontWeight: 700, color: '#f80', marginBottom: 4 }}
@@ -5563,13 +5565,13 @@ export default function Tracker() {
                           </select>
                         ) : (
                           <div style={{ fontSize: 11, color: '#556' }}>
-                            No vendors found for this patient
+                            No vendors found for this case
                           </div>
                         )}
                       </div>
                     )}
-                    {(snapForm.patient && snapForm.patient !== '__new__' && snapForm.vendor) ||
-                    (isNew && snapForm.newPatient && snapForm.newDate && snapForm.newVendor) ? (
+                    {(snapForm.case_label && snapForm.case_label !== '__new__' && snapForm.vendor) ||
+                    (isNew && snapForm.newCaseLabel && snapForm.newDate && snapForm.newVendor) ? (
                       <>
                         <div style={{ marginBottom: 10 }}>
                           <div
@@ -5655,16 +5657,16 @@ export default function Tracker() {
           onChange={async (e) => {
             const files = Array.from(e.target.files);
             if (!files.length) return;
-            const isNew = snapForm.patient === '__new__';
-            const pid = isNew ? snapForm.newPatient : snapForm.patient.split('|')[0];
-            const dt = isNew ? snapForm.newDate : snapForm.patient.split('|')[1];
+            const isNew = snapForm.case_label === '__new__';
+            const pid = isNew ? snapForm.newCaseLabel : snapForm.case_label.split('|')[0];
+            const dt = isNew ? snapForm.newDate : snapForm.case_label.split('|')[1];
             const vendors = isNew
               ? [snapForm.newVendor]
               : snapForm.vendor === '__all__'
                 ? [
                     ...new Set(
                       entries
-                        .filter((x) => x.patient + '|' + x.date === snapForm.patient)
+                        .filter((x) => (x.case_label || '') + '|' + x.date === snapForm.case_label)
                         .map((x) => x.vendor)
                     ),
                   ]
@@ -5696,7 +5698,7 @@ export default function Tracker() {
               `${files.length} ${label}(s) → ${vendors.length > 1 ? vendors.length + ' vendors' : vendors[0]}`
             );
             setSnapOpen(false);
-            setSnapForm({ patient: '', date: '', vendor: '', docType: 'bs' });
+            setSnapForm({ case_label: '', date: '', vendor: '', docType: 'bs' });
           }}
         />
       </div>

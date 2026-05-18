@@ -9,7 +9,7 @@ export interface Entry {
   product_name: string;
   item_number: string;
   cost: number;
-  patient: string;
+  case_label?: string;
 }
 
 export type EntryInsert = Omit<Entry, 'id' | 'created_at' | 'user_id'>;

@@ -10,7 +10,7 @@ interface RawEntry {
   facility: string;
   date: string;
   cost: number | string;
-  patient: string;
+  case_label?: string;
   productName: string;
   productNumber?: string;
   description?: string;
@@ -26,7 +26,7 @@ interface DbRow {
   facility: string;
   date: string;
   cost: number;
-  patient: string;
+  case_label?: string | null;
   product_name: string;
   item_number: string;
   description?: string | null;
@@ -46,7 +46,7 @@ function toDbRow(e: RawEntry, systemId: string, userId: string) {
     facility: e.facility,
     date: e.date,
     cost: Number(e.cost),
-    patient: e.patient,
+    case_label: e.case_label ?? null,
     product_name: e.productName,
     item_number: e.productNumber ?? '',
     description: e.description ?? null,
@@ -63,7 +63,7 @@ function fromDbRow(r: DbRow) {
     facility: r.facility,
     date: r.date,
     cost: r.cost,
-    patient: r.patient,
+    case_label: r.case_label ?? '',
     productName: r.product_name,
     productNumber: r.item_number,
     description: r.description ?? '',
