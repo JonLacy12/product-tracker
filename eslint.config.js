@@ -37,16 +37,5 @@ export default tseslint.config(
       ],
     },
   },
-  {
-    files: ['netlify/functions/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-    },
-  },
   prettierConfig
 );
