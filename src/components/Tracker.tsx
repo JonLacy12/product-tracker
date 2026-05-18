@@ -1973,8 +1973,8 @@ export default function Tracker() {
         <div
           style={{
             position: 'fixed',
-            top: 16,
-            right: 16,
+            top: 'calc(env(safe-area-inset-top) + 8px)',
+            right: 'calc(env(safe-area-inset-right) + 12px)',
             zIndex: 999,
             padding: '10px 18px',
             borderRadius: 10,
