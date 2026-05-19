@@ -5,7 +5,7 @@ const CORS_HEADERS = {
 };
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-opus-4-7";
 
 const EXTRACTION_PROMPT = `You are a surgical bill sheet parser. Extract structured data from the image of a bill sheet or surgical log.
 
@@ -28,6 +28,17 @@ Return ONLY a valid JSON object with this exact shape (no markdown, no code fenc
   ]
 }
 
+Common vendor names that appear on these bill sheets (use these exact spellings when handwriting is ambiguous — the cursive "n" can look like "r"):
+- Sua Sponte Med
+- ISTO (or Isto Biologics)
+- Choice Spine, LLC
+- Amplify
+- MiMedx
+- Xtant Medical
+- Stryker
+- NuVasive
+If you see handwriting that resembles one of these, default to the listed spelling.
+
 Rules:
 - Extract every line item visible on the sheet.
 - Use null for any field that is not legible or not present.
@@ -37,10 +48,16 @@ Rules:
 - For handwritten numerals, prefer the interpretation that makes the line-item sum match any visible grand total.
 - Return nothing outside the JSON object.
 
+Before computing sums, FIRST read the Grand Total value VERY CAREFULLY. Pay special attention to ambiguous handwritten digits in the Grand Total — if it could be 1050 vs 1080, examine pen strokes carefully. The Grand Total is your anchor; mis-reading it propagates errors through everything else.
+
 Self-verification (perform this INTERNALLY before writing your response — DO NOT include any of this reasoning in your output):
-- If a "Requisition Total", "Grand Total", "G.T.", or similar summary value is visible on the sheet, compute the sum of (quantity × cost) for all line items.
-- If your computed sum does NOT match the visible total, the most common cause is misreading a leading digit on a handwritten number (e.g. reading "865" when the actual value is "2865"). Re-examine each cost field with extra scrutiny and correct your extraction.
-- Only return your response once the sum matches the total, OR once you have re-checked every cost field and are confident the visible total itself is unclear/illegible.
+- If a "Requisition Total", "Grand Total", "G.T.", or similar summary value is visible on the sheet, the Grand Total is the AUTHORITATIVE source of truth, not the individual line item costs.
+- Compute the sum of (quantity × cost) for all line items.
+- If your computed sum does NOT match the visible Grand Total, you MUST reconcile this before responding:
+  - For SINGLE-ITEM sheets: the line item's cost × quantity MUST equal the Grand Total exactly. If your initial extraction doesn't match, adjust the cost so quantity × cost = Grand Total.
+  - For MULTI-ITEM sheets: identify the line item(s) with ambiguous handwriting and adjust their costs until the sum matches.
+  - Commonly confused handwritten digit pairs: 0/8, 0/6, 3/5, 5/8, 1/7, 4/9.
+- Only return your response once the sum matches the Grand Total, OR once you are certain the visible Grand Total itself is illegible/unclear.
 
 FINAL OUTPUT REQUIREMENT: Your entire response must be the final JSON object and nothing else. Do NOT write phrases like "Let me", "I need to", "Looking at", "Let's verify". Do NOT include markdown code fences. Do NOT include preamble, commentary, or explanation. Start your response with the opening brace { and end with the closing brace }. The first character of your response must be {.`;
 
@@ -98,6 +115,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 8192,
+
         messages: [
           {
             role: "user",

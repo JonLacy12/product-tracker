@@ -2863,7 +2863,7 @@ export default function Tracker() {
                           {result.fileName}
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                          <div style={{ flex: 1 }}>
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>DATE</div>
                             <input
                               type="date"
@@ -2872,7 +2872,7 @@ export default function Tracker() {
                               style={S.inp}
                             />
                           </div>
-                          <div style={{ flex: 1 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>
                               FACILITY
                             </div>
@@ -2960,7 +2960,7 @@ export default function Tracker() {
                                 </button>
                               </div>
                               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     VENDOR
                                   </div>
@@ -2973,7 +2973,7 @@ export default function Tracker() {
                                     placeholder="Vendor"
                                   />
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     PRODUCT
                                   </div>
@@ -2988,7 +2988,7 @@ export default function Tracker() {
                                 </div>
                               </div>
                               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     ITEM #
                                   </div>
@@ -3001,7 +3001,7 @@ export default function Tracker() {
                                     placeholder="Item number"
                                   />
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     LOT #
                                   </div>
@@ -3043,7 +3043,7 @@ export default function Tracker() {
                                     min={1}
                                   />
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     COST
                                   </div>
