@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { extractBillSheet, fileToBase64 } from '@/lib/extractor';
 
 const VENDORS = [
   '4Web',
@@ -1442,6 +1443,10 @@ export default function Tracker() {
   const inboxRef = useRef(null);
   const snapFileRef = useRef(null);
   const [sumMonth, setSumMonth] = useState('all');
+  const [extracting, setExtracting] = useState(false);
+  const [extractDone, setExtractDone] = useState(0);
+  const [extractTotal, setExtractTotal] = useState(0);
+  const [reviewData, setReviewData] = useState(null);
   // Commission system
   const [commRates, setCommRates] = useState([]);
   const [commReports, setCommReports] = useState([]);
@@ -1663,26 +1668,96 @@ export default function Tracker() {
     if (!bsTarget) return;
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    const newBSs = { ...bsImages };
-    if (!newBSs[bsTarget]) newBSs[bsTarget] = [];
-    for (const file of files) {
-      const reader = new FileReader();
-      await new Promise((resolve) => {
-        reader.onload = () => {
-          newBSs[bsTarget].push({
-            name: file.name,
-            data: reader.result,
-            date: new Date().toISOString(),
-          });
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-    await saveBSs(newBSs);
-    setBsTarget(null);
     e.target.value = '';
-    notify(`${files.length} Bill Sheet(s) attached`);
+    const [preCaseLabel, preDate, preVendor] = (bsTarget || '||').split('|');
+    setBsTarget(null);
+    setExtracting(true);
+    setExtractDone(0);
+    setExtractTotal(files.length);
+    const results = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const base64 = await fileToBase64(file);
+          const sheet = await extractBillSheet(base64, file.type || 'image/jpeg');
+          setExtractDone((d) => d + 1);
+          return {
+            fileName: file.name,
+            error: null,
+            sheet: {
+              facility: sheet.facility || form.facility,
+              date: sheet.date || preDate || '',
+              case_label: preCaseLabel || '',
+              items: (sheet.items || []).map((item) => ({
+                checked: true,
+                vendor: item.vendor || preVendor || '',
+                product_name: item.product_name || '',
+                item_number: item.item_number || '',
+                lot_number: item.lot_number || '',
+                description: item.description || '',
+                quantity: item.quantity ?? 1,
+                cost: item.cost ?? 0,
+              })),
+            },
+          };
+        } catch (err) {
+          setExtractDone((d) => d + 1);
+          return { fileName: file.name, error: String(err.message || err), sheet: null };
+        }
+      })
+    );
+    setExtracting(false);
+    setReviewData(results);
+  };
+  const updateReviewSheet = (si, field, value) =>
+    setReviewData((prev) => {
+      const next = [...prev];
+      next[si] = { ...next[si], sheet: { ...next[si].sheet, [field]: value } };
+      return next;
+    });
+  const updateReviewItem = (si, ii, field, value) =>
+    setReviewData((prev) => {
+      const next = [...prev];
+      const items = [...next[si].sheet.items];
+      items[ii] = { ...items[ii], [field]: value };
+      next[si] = { ...next[si], sheet: { ...next[si].sheet, items } };
+      return next;
+    });
+  const deleteReviewItem = (si, ii) =>
+    setReviewData((prev) => {
+      const next = [...prev];
+      const items = next[si].sheet.items.filter((_, i) => i !== ii);
+      next[si] = { ...next[si], sheet: { ...next[si].sheet, items } };
+      return next;
+    });
+  const discardReviewResult = (si) =>
+    setReviewData((prev) => prev.filter((_, i) => i !== si));
+  const saveExtracted = async () => {
+    const newEntries = [];
+    for (const result of reviewData) {
+      if (!result.sheet) continue;
+      const { facility, date, case_label, items } = result.sheet;
+      for (const item of items) {
+        if (!item.checked) continue;
+        newEntries.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          vendor: item.vendor || '',
+          facility: facility || form.facility,
+          date: date || form.date,
+          cost: Number(item.cost) || 0,
+          case_label: case_label || '',
+          productName: item.product_name || '',
+          productNumber: item.item_number || '',
+          description: item.description || '',
+          quantity: Number(item.quantity) || 1,
+          dateSubmitted: new Date().toISOString().slice(0, 10),
+          submittedBy: form.submittedBy || '',
+        });
+      }
+    }
+    setReviewData(null);
+    if (newEntries.length === 0) return;
+    await save([...entries, ...newEntries], null);
+    notify(`${newEntries.length} item${newEntries.length !== 1 ? 's' : ''} saved`);
   };
   const notify = (m, ok = true) => {
     setNote({ m, ok });
@@ -2706,6 +2781,371 @@ export default function Tracker() {
           style={{ display: 'none' }}
           onChange={handleInboxUpload}
         />
+        {extracting && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,.92)',
+              zIndex: 1500,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+          >
+            <div style={{ fontSize: 36 }}>🔍</div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>
+              Extracting {extractDone} of {extractTotal}&hellip;
+            </div>
+            <div style={{ color: '#a6f', fontSize: 13 }}>Analyzing bill sheet with AI</div>
+          </div>
+        )}
+        {reviewData &&
+          (() => {
+            const selectedCount = reviewData.reduce(
+              (sum, r) => (r.sheet ? sum + r.sheet.items.filter((i) => i.checked).length : sum),
+              0
+            );
+            return (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: '#08080e',
+                  zIndex: 1400,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '16px 20px',
+                    paddingTop: 'calc(env(safe-area-inset-top) + 16px)',
+                    borderBottom: '1px solid #1a1a28',
+                    background: '#08080e',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#eee' }}>
+                    Extraction Review
+                  </div>
+                  <div style={{ fontSize: 11, color: '#556', marginTop: 2 }}>
+                    Review and edit extracted items before saving
+                  </div>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+                  {reviewData.map((result, si) =>
+                    result.error ? (
+                      <div
+                        key={si}
+                        style={{
+                          ...S.card,
+                          border: '1px solid #5a1a1a',
+                          background: '#1a0808',
+                          marginBottom: 16,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{ fontSize: 12, fontWeight: 700, color: '#f66', marginBottom: 4 }}
+                          >
+                            ⚠ Extraction failed
+                          </div>
+                          <div style={{ fontSize: 11, color: '#888' }}>{result.fileName}</div>
+                          <div style={{ fontSize: 11, color: '#f66', marginTop: 4 }}>
+                            {result.error}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => discardReviewResult(si)}
+                          className="hb"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #5a1a1a',
+                            background: 'transparent',
+                            color: '#f66',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    ) : (
+                      <div key={si} style={{ ...S.card, marginBottom: 16 }}>
+                        <div style={{ fontSize: 11, color: '#556', marginBottom: 10 }}>
+                          {result.fileName}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>DATE</div>
+                            <input
+                              type="date"
+                              value={result.sheet.date}
+                              onChange={(e) => updateReviewSheet(si, 'date', e.target.value)}
+                              style={S.inp}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>
+                              FACILITY
+                            </div>
+                            <input
+                              value={result.sheet.facility}
+                              onChange={(e) => updateReviewSheet(si, 'facility', e.target.value)}
+                              style={S.inp}
+                              placeholder="Facility"
+                            />
+                          </div>
+                        </div>
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>
+                            CASE LABEL — do not enter patient identifiers
+                          </div>
+                          <input
+                            value={result.sheet.case_label}
+                            onChange={(e) => updateReviewSheet(si, 'case_label', e.target.value)}
+                            style={S.inp}
+                            placeholder="e.g. Case A, Tue OR"
+                          />
+                        </div>
+                        {result.sheet.items.length === 0 ? (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: '#556',
+                              textAlign: 'center',
+                              padding: '12px 0',
+                            }}
+                          >
+                            No items extracted
+                          </div>
+                        ) : (
+                          result.sheet.items.map((item, ii) => (
+                            <div
+                              key={ii}
+                              style={{
+                                background: '#0a0a14',
+                                borderRadius: 8,
+                                border: `1px solid ${item.checked ? '#2a2a40' : '#181820'}`,
+                                padding: '10px 12px',
+                                marginBottom: 8,
+                                opacity: item.checked ? 1 : 0.45,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={item.checked}
+                                  onChange={(e) =>
+                                    updateReviewItem(si, ii, 'checked', e.target.checked)
+                                  }
+                                  style={{
+                                    width: 16,
+                                    height: 16,
+                                    accentColor: '#a6f',
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span style={{ fontSize: 12, color: '#aaa', flex: 1 }}>
+                                  {item.product_name || item.description || `Item ${ii + 1}`}
+                                </span>
+                                <button
+                                  onClick={() => deleteReviewItem(si, ii)}
+                                  className="hb"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#556',
+                                    cursor: 'pointer',
+                                    fontSize: 18,
+                                    lineHeight: 1,
+                                    padding: '0 4px',
+                                  }}
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    VENDOR
+                                  </div>
+                                  <input
+                                    value={item.vendor}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'vendor', e.target.value)
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    placeholder="Vendor"
+                                  />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    PRODUCT
+                                  </div>
+                                  <input
+                                    value={item.product_name}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'product_name', e.target.value)
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    placeholder="Product name"
+                                  />
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    ITEM #
+                                  </div>
+                                  <input
+                                    value={item.item_number}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'item_number', e.target.value)
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    placeholder="Item number"
+                                  />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    LOT #
+                                  </div>
+                                  <input
+                                    value={item.lot_number}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'lot_number', e.target.value)
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    placeholder="Lot number"
+                                  />
+                                </div>
+                              </div>
+                              <div style={{ marginBottom: 6 }}>
+                                <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                  DESCRIPTION
+                                </div>
+                                <input
+                                  value={item.description}
+                                  onChange={(e) =>
+                                    updateReviewItem(si, ii, 'description', e.target.value)
+                                  }
+                                  style={{ ...S.inp, fontSize: 12 }}
+                                  placeholder="Description"
+                                />
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <div style={{ width: 80 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    QTY
+                                  </div>
+                                  <input
+                                    type="number"
+                                    value={item.quantity}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'quantity', Number(e.target.value))
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    min={1}
+                                  />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                    COST
+                                  </div>
+                                  <input
+                                    type="number"
+                                    value={item.cost}
+                                    onChange={(e) =>
+                                      updateReviewItem(si, ii, 'cost', Number(e.target.value))
+                                    }
+                                    style={{ ...S.inp, fontSize: 12 }}
+                                    step="0.01"
+                                    min={0}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )
+                  )}
+                  <div style={{ height: 100 }} />
+                </div>
+                <div
+                  style={{
+                    padding: '16px',
+                    paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+                    borderTop: '1px solid #1a1a28',
+                    background: '#08080e',
+                    display: 'flex',
+                    gap: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  <button
+                    onClick={() => setReviewData(null)}
+                    className="hb"
+                    style={{
+                      flex: 1,
+                      padding: '13px',
+                      borderRadius: 10,
+                      border: '1px solid #2a2a35',
+                      background: 'transparent',
+                      color: '#888',
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveExtracted}
+                    className="hb"
+                    style={{
+                      flex: 2,
+                      padding: '13px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background:
+                        selectedCount > 0
+                          ? 'linear-gradient(135deg,#f80,#e44)'
+                          : '#2a2a35',
+                      color: selectedCount > 0 ? '#fff' : '#556',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Save {selectedCount} selected item{selectedCount !== 1 ? 's' : ''}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         {viewingPO && (
           <div
             onClick={() => setViewingPO(null)}
