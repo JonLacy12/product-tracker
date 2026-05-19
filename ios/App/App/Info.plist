@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Product Tracker uses the camera to scan bill sheets and extract product details automatically.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Product Tracker accesses your photos so you can scan existing bill sheet images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Product Tracker may save scanned bill sheet images to your photo library.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>

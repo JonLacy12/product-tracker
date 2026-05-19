@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { extractBillSheet, fileToBase64 } from '@/lib/extractor';
 
 const VENDORS = [
@@ -1435,8 +1436,7 @@ export default function Tracker() {
   const [viewingPO, setViewingPO] = useState(null);
   const poFileRef = useRef(null);
   const [poTarget, setPoTarget] = useState(null);
-  const bsFileRef = useRef(null);
-  const [bsTarget, setBsTarget] = useState(null);
+
   const [snapOpen, setSnapOpen] = useState(false);
   const [snapForm, setSnapForm] = useState({ case_label: '', date: '', vendor: '', docType: 'bs' });
   const [inbox, setInbox] = useState([]);
@@ -1664,24 +1664,32 @@ export default function Tracker() {
     e.target.value = '';
     notify(`${files.length} PO(s) attached`);
   };
-  const handleBSUpload = async (e) => {
-    if (!bsTarget) return;
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    e.target.value = '';
-    const [preCaseLabel, preDate, preVendor] = (bsTarget || '||').split('|');
-    setBsTarget(null);
+  const launchBSScan = async (targetKey = '') => {
+    const [preCaseLabel, preDate, preVendor] = (targetKey || '||').split('|');
+    let photos;
+    try {
+      const result = await Camera.pickImages({ quality: 80, limit: 0 });
+      photos = result.photos;
+    } catch {
+      notify('Camera unavailable or cancelled', false);
+      return;
+    }
+    if (!photos?.length) return;
     setExtracting(true);
     setExtractDone(0);
-    setExtractTotal(files.length);
+    setExtractTotal(photos.length);
     const results = await Promise.all(
-      files.map(async (file) => {
+      photos.map(async (photo) => {
+        const fileName = `scan.${photo.format || 'jpg'}`;
         try {
+          const blob = await fetch(photo.webPath).then((r) => r.blob());
+          const mimeType = blob.type || `image/${photo.format || 'jpeg'}`;
+          const file = new File([blob], fileName, { type: mimeType });
           const base64 = await fileToBase64(file);
-          const sheet = await extractBillSheet(base64, file.type || 'image/jpeg');
+          const sheet = await extractBillSheet(base64, mimeType);
           setExtractDone((d) => d + 1);
           return {
-            fileName: file.name,
+            fileName,
             error: null,
             sheet: {
               facility: normalizeFacility(sheet.facility, form.facility),
@@ -1701,7 +1709,7 @@ export default function Tracker() {
           };
         } catch (err) {
           setExtractDone((d) => d + 1);
-          return { fileName: file.name, error: String(err.message || err), sheet: null };
+          return { fileName, error: String(err.message || err), sheet: null };
         }
       })
     );
@@ -2469,10 +2477,7 @@ export default function Tracker() {
                 Add Product Entry
               </div>
               <button
-                onClick={() => {
-                  setBsTarget('');
-                  setTimeout(() => bsFileRef.current?.click(), 50);
-                }}
+                onClick={() => launchBSScan('')}
                 className="hb"
                 style={{
                   width: '100%',
@@ -2677,8 +2682,7 @@ export default function Tracker() {
                   <button
                     onClick={() => {
                       const vKey = (form.case_label || '') + '|' + (form.date || '') + '|' + (form.vendor || '');
-                      setBsTarget(vKey);
-                      setTimeout(() => bsFileRef.current?.click(), 50);
+                      launchBSScan(vKey);
                     }}
                     className="hb"
                     style={{
@@ -2740,14 +2744,6 @@ export default function Tracker() {
           ref={poFileRef}
           style={{ display: 'none' }}
           onChange={handlePOUpload}
-        />
-        <input
-          type="file"
-          accept="image/*,.pdf"
-          multiple
-          ref={bsFileRef}
-          style={{ display: 'none' }}
-          onChange={handleBSUpload}
         />
         <input
           type="file"
@@ -3234,9 +3230,9 @@ export default function Tracker() {
               <button
                 onClick={() => {
                   if (viewingPO.docType === 'bs') {
-                    setBsTarget(viewingPO.id);
+                    const id = viewingPO.id;
                     setViewingPO(null);
-                    setTimeout(() => bsFileRef.current?.click(), 50);
+                    launchBSScan(id);
                   } else {
                     setPoTarget(viewingPO.id);
                     setViewingPO(null);
@@ -3480,8 +3476,7 @@ export default function Tracker() {
                                           docType: 'bs',
                                         });
                                       } else {
-                                        setBsTarget(vKey);
-                                        setTimeout(() => bsFileRef.current?.click(), 50);
+                                        launchBSScan(vKey);
                                       }
                                     }}
                                     className="hb"
