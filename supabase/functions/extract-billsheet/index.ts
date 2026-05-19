@@ -34,7 +34,15 @@ Rules:
 - cost must be a plain number (e.g. 1250.00), not a string.
 - quantity must be a plain number (e.g. 1), not a string.
 - Do not fabricate values — only extract what is actually visible.
-- Return nothing outside the JSON object.`;
+- For handwritten numerals, prefer the interpretation that makes the line-item sum match any visible grand total.
+- Return nothing outside the JSON object.
+
+Self-verification (perform this INTERNALLY before writing your response — DO NOT include any of this reasoning in your output):
+- If a "Requisition Total", "Grand Total", "G.T.", or similar summary value is visible on the sheet, compute the sum of (quantity × cost) for all line items.
+- If your computed sum does NOT match the visible total, the most common cause is misreading a leading digit on a handwritten number (e.g. reading "865" when the actual value is "2865"). Re-examine each cost field with extra scrutiny and correct your extraction.
+- Only return your response once the sum matches the total, OR once you have re-checked every cost field and are confident the visible total itself is unclear/illegible.
+
+FINAL OUTPUT REQUIREMENT: Your entire response must be the final JSON object and nothing else. Do NOT write phrases like "Let me", "I need to", "Looking at", "Let's verify". Do NOT include markdown code fences. Do NOT include preamble, commentary, or explanation. Start your response with the opening brace { and end with the closing brace }. The first character of your response must be {.`;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -89,7 +97,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 8192,
         messages: [
           {
             role: "user",
