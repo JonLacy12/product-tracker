@@ -1684,7 +1684,7 @@ export default function Tracker() {
             fileName: file.name,
             error: null,
             sheet: {
-              facility: sheet.facility || form.facility,
+              facility: normalizeFacility(sheet.facility, form.facility),
               date: sheet.date || preDate || '',
               case_label: preCaseLabel || '',
               items: (sheet.items || []).map((item) => ({
@@ -1731,6 +1731,15 @@ export default function Tracker() {
     });
   const discardReviewResult = (si) =>
     setReviewData((prev) => prev.filter((_, i) => i !== si));
+  // Maps fuzzy facility strings returned by OCR to canonical app values.
+  // Add future facilities here (e.g. Forsyth, Cherokee, Duluth, Lawrenceville) as needed.
+  const normalizeFacility = (raw, fallback) => {
+    if (!raw) return fallback;
+    const s = raw.toLowerCase();
+    if (s.includes('northside')) return 'Northside';
+    if (s.includes('northeast') || s.includes('nega') || s.includes('ngmc')) return 'Northeast Georgia';
+    return fallback;
+  };
   const saveExtracted = async () => {
     const newEntries = [];
     for (const result of reviewData) {
@@ -1741,7 +1750,7 @@ export default function Tracker() {
         newEntries.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
           vendor: item.vendor || '',
-          facility: facility || form.facility,
+          facility: normalizeFacility(facility, form.facility),
           date: date || form.date,
           cost: Number(item.cost) || 0,
           case_label: case_label || '',
@@ -2459,11 +2468,36 @@ export default function Tracker() {
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
                 Add Product Entry
               </div>
-              <div style={{ fontSize: 11, color: '#556', marginBottom: 18 }}>
-                Pick from Price Sheets tab to auto-fill, or enter manually.{' '}
-                <strong style={{ color: '#fa6' }}>
-                  Make sure the correct facility is selected!
-                </strong>
+              <button
+                onClick={() => {
+                  setBsTarget('');
+                  setTimeout(() => bsFileRef.current?.click(), 50);
+                }}
+                className="hb"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: 'linear-gradient(135deg,#7a3ff5,#4a6cf7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  marginBottom: 6,
+                }}
+              >
+                📷 Scan Bill Sheet
+              </button>
+              <div style={{ fontSize: 11, color: '#556', textAlign: 'center', marginBottom: 16 }}>
+                AI extracts all fields — no setup required
+              </div>
+              <div style={{ fontSize: 11, color: '#445', marginBottom: 14 }}>
+                — or enter manually —
               </div>
               <div
                 style={{
@@ -2639,67 +2673,10 @@ export default function Tracker() {
               >
                 Add Product Entry ↵
               </button>
-              <button
-                onClick={() => inboxRef.current?.click()}
-                className="hb"
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 10,
-                  border: '2px dashed #a6f44',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: '#a6f',
-                  background: 'linear-gradient(135deg,#1a0a2a,#0a0a1a)',
-                  marginTop: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                📷 Upload Bill Sheet / PO
-              </button>
-              <div style={{ fontSize: 10, color: '#556', textAlign: 'center', marginTop: 4 }}>
-                No fields required — upload now, send to Claude in chat to extract data
-              </div>
-              {inbox.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    background: '#1a0a2a',
-                    border: '1px solid #3a1a5a',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span style={{ fontSize: 11, color: '#a6f', fontWeight: 600 }}>
-                    📥 {inbox.filter((i) => i.status === 'pending').length} pending in inbox
-                  </span>
-                  <button
-                    onClick={() => setTab('patients')}
-                    className="hb"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#6af',
-                      cursor: 'pointer',
-                      fontSize: 11,
-                    }}
-                  >
-                    View →
-                  </button>
-                </div>
-              )}
-              {form.vendor && form.date && (
-                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                   <button
                     onClick={() => {
-                      const vKey = (form.case_label || '') + '|' + form.date + '|' + form.vendor;
+                      const vKey = (form.case_label || '') + '|' + (form.date || '') + '|' + (form.vendor || '');
                       setBsTarget(vKey);
                       setTimeout(() => bsFileRef.current?.click(), 50);
                     }}
@@ -2720,11 +2697,11 @@ export default function Tracker() {
                       gap: 6,
                     }}
                   >
-                    📋 Attach to {form.vendor}
+                    📋 Scan &amp; attach{form.vendor ? ` to ${form.vendor}` : ''}
                   </button>
                   <button
                     onClick={() => {
-                      const vKey = (form.case_label || '') + '|' + form.date + '|' + form.vendor;
+                      const vKey = (form.case_label || '') + '|' + (form.date || '') + '|' + (form.vendor || '');
                       setPoTarget(vKey);
                       setTimeout(() => poFileRef.current?.click(), 50);
                     }}
@@ -2745,10 +2722,9 @@ export default function Tracker() {
                       gap: 6,
                     }}
                   >
-                    📎 PO to {form.vendor}
+                    📎 PO{form.vendor ? ` to ${form.vendor}` : ''}
                   </button>
                 </div>
-              )}
               <div style={{ fontSize: 11, color: '#445', marginTop: 8 }}>
                 💡 Type an item # and cost auto-fills for the selected facility.
                 Vendor/date/facility persist for batch entry.
