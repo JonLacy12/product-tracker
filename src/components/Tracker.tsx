@@ -1311,9 +1311,15 @@ const MIMEDX_NEGA = [
 ];
 // Searches all hardcoded price catalogs by item number.
 // Returns catalog price + matched vendor name, or null if not in any catalog.
-function lookupCatalogPrice(vendor, itemNumber, facility) {
+// Checks user-added overrides (passed in) before the hardcoded seed catalogs.
+function lookupCatalogPrice(vendor, itemNumber, facility, overrides = []) {
   if (!itemNumber) return null;
   const normItem = String(itemNumber).trim().toUpperCase().replace(/\s+/g, '');
+  for (const ov of overrides) {
+    if (String(ov.item_number || '').trim().toUpperCase().replace(/\s+/g, '') === normItem) {
+      return { price: ov.price, matchedVendor: ov.vendor, source: 'override' };
+    }
+  }
   const catalogs = [
     { vendor: 'Xtant', cats: facility === 'Northside' ? NS : NEGA },
     { vendor: 'ISTO', cats: ISTO_NS },
@@ -1669,6 +1675,23 @@ export default function Tracker() {
       await window.storage.set(sk('bs-images'), JSON.stringify(updated), true);
     } catch {}
   };
+  const [catalogOverrides, setCatalogOverrides] = useState([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get(sk('catalog-overrides-v1'), true);
+        if (r) setCatalogOverrides(JSON.parse(r.value));
+      } catch {}
+    })();
+  }, [sys]);
+  const addCatalogOverride = async (entry) => {
+    const newEntry = { ...entry, addedAt: new Date().toISOString() };
+    setCatalogOverrides((prev) => {
+      const updated = [...prev, newEntry];
+      window.storage.set(sk('catalog-overrides-v1'), JSON.stringify(updated), true).catch(() => {});
+      return updated;
+    });
+  };
   const handlePOUpload = async (e) => {
     if (!poTarget) return;
     const files = Array.from(e.target.files);
@@ -1732,6 +1755,7 @@ export default function Tracker() {
                   item.vendor || preVendor,
                   item.item_number,
                   normalizedFacility,
+                  catalogOverrides,
                 );
                 return {
                   checked: true,
@@ -3093,10 +3117,28 @@ export default function Tracker() {
                                         style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#0a2a0a', color: '#4f4', border: '1px solid #1a4a1a', opacity: 0.8 }}
                                       >📋 catalog</span>
                                     ) : (
-                                      <span
-                                        title="Not in catalog — verify manually"
-                                        style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#2a2a0a', color: '#ff4', border: '1px solid #4a4a1a', opacity: 0.8 }}
-                                      >👁 ocr</span>
+                                      <>
+                                        <span
+                                          title="Not in catalog — verify manually"
+                                          style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#2a2a0a', color: '#ff4', border: '1px solid #4a4a1a', opacity: 0.8 }}
+                                        >👁 ocr</span>
+                                        {item.item_number && item.cost ? (
+                                          <button
+                                            onClick={async () => {
+                                              await addCatalogOverride({
+                                                vendor: item.vendor,
+                                                item_number: item.item_number,
+                                                description: item.description,
+                                                price: item.cost,
+                                                facility: result.sheet.facility,
+                                              });
+                                              updateReviewItem(si, ii, 'priceSource', 'catalog');
+                                            }}
+                                            className="hb"
+                                            style={{ background: 'none', border: '1px solid #2a4a1a', borderRadius: 3, color: '#8f8', fontSize: 9, padding: '1px 4px', cursor: 'pointer', lineHeight: 1 }}
+                                          >+ catalog</button>
+                                        ) : null}
+                                      </>
                                     )}
                                   </div>
                                   <input
