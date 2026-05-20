@@ -1309,6 +1309,36 @@ const MIMEDX_NEGA = [
   { g: 'AmnioFix', i: 'AAS-5460', d: 'AmnioFix 4x6cm', f: 1800 },
   { g: 'AxioFill', i: 'PCM-0500', d: 'AxioFill 500mg', f: 1095 },
 ];
+// Searches all hardcoded price catalogs by item number.
+// Returns catalog price + matched vendor name, or null if not in any catalog.
+function lookupCatalogPrice(vendor, itemNumber, facility) {
+  if (!itemNumber) return null;
+  const normItem = String(itemNumber).trim().toUpperCase().replace(/\s+/g, '');
+  const catalogs = [
+    { vendor: 'Xtant', cats: facility === 'Northside' ? NS : NEGA },
+    { vendor: 'ISTO', cats: ISTO_NS },
+    { vendor: 'Spinewave', cats: SW_NS },
+    { vendor: 'Royal', cats: ROYAL_NS },
+    { vendor: 'Cellerate', cats: facility === 'Northside' ? CELL_NS : CELL_NEGA },
+    { vendor: 'MiMedx', cats: facility === 'Northside' ? MIMEDX_NS : MIMEDX_NEGA },
+  ];
+  const normVendor = (vendor || '').toLowerCase();
+  // Priority a: item match within the vendor's own catalog
+  if (normVendor) {
+    for (const { vendor: cv, cats } of catalogs) {
+      if (cv.toLowerCase().includes(normVendor) || normVendor.includes(cv.toLowerCase())) {
+        const m = cats.find((x) => String(x.i).trim().toUpperCase() === normItem);
+        if (m) return { price: m.f, matchedVendor: cv };
+      }
+    }
+  }
+  // Priority b: item match in any catalog
+  for (const { vendor: cv, cats } of catalogs) {
+    const m = cats.find((x) => String(x.i).trim().toUpperCase() === normItem);
+    if (m) return { price: m.f, matchedVendor: cv };
+  }
+  return null;
+}
 const SHEETS_ALL = {
   Xtant: {
     'Northeast Georgia': { label: 'NEGA #10009722 — July 2025', data: NEGA },
@@ -1415,7 +1445,7 @@ export default function Tracker() {
   const [status, setStatus] = useState('loading');
   const [note, setNote] = useState(null);
   const [form, setForm] = useState({
-    vendor: 'Xtant',
+    vendor: '',
     date: '',
     cost: '',
     case_label: '',
@@ -1688,23 +1718,34 @@ export default function Tracker() {
           const base64 = await fileToBase64(file);
           const sheet = await extractBillSheet(base64, mimeType);
           setExtractDone((d) => d + 1);
+          const normalizedFacility = normalizeFacility(sheet.facility, form.facility);
           return {
             fileName,
             error: null,
             sheet: {
-              facility: normalizeFacility(sheet.facility, form.facility),
+              facility: normalizedFacility,
               date: sheet.date || preDate || '',
               case_label: preCaseLabel || '',
-              items: (sheet.items || []).map((item) => ({
-                checked: true,
-                vendor: item.vendor || preVendor || '',
-                product_name: item.product_name || '',
-                item_number: item.item_number || '',
-                lot_number: item.lot_number || '',
-                description: item.description || '',
-                quantity: item.quantity ?? 1,
-                cost: item.cost ?? 0,
-              })),
+              items: (sheet.items || []).map((item) => {
+                const ocrCost = item.cost ?? 0;
+                const catalogResult = lookupCatalogPrice(
+                  item.vendor || preVendor,
+                  item.item_number,
+                  normalizedFacility,
+                );
+                return {
+                  checked: true,
+                  vendor: item.vendor || preVendor || '',
+                  product_name: item.product_name || '',
+                  item_number: item.item_number || '',
+                  lot_number: item.lot_number || '',
+                  description: item.description || '',
+                  quantity: item.quantity ?? 1,
+                  cost: catalogResult ? catalogResult.price : ocrCost,
+                  ocrCost,
+                  priceSource: catalogResult ? 'catalog' : 'ocr',
+                };
+              }),
             },
           };
         } catch (err) {
@@ -2862,8 +2903,8 @@ export default function Tracker() {
                         <div style={{ fontSize: 11, color: '#556', marginBottom: 10 }}>
                           {result.fileName}
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8, marginBottom: 10 }}>
+                          <div>
                             <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>DATE</div>
                             <input
                               type="date"
@@ -2872,7 +2913,7 @@ export default function Tracker() {
                               style={S.inp}
                             />
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div>
                             <div style={{ fontSize: 10, color: '#556', marginBottom: 3 }}>
                               FACILITY
                             </div>
@@ -2959,8 +3000,8 @@ export default function Tracker() {
                                   &times;
                                 </button>
                               </div>
-                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 6, marginBottom: 6 }}>
+                                <div>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     VENDOR
                                   </div>
@@ -2973,7 +3014,7 @@ export default function Tracker() {
                                     placeholder="Vendor"
                                   />
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
+                                <div>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     PRODUCT
                                   </div>
@@ -2987,8 +3028,8 @@ export default function Tracker() {
                                   />
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 6, marginBottom: 6 }}>
+                                <div>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     ITEM #
                                   </div>
@@ -3001,7 +3042,7 @@ export default function Tracker() {
                                     placeholder="Item number"
                                   />
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
+                                <div>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     LOT #
                                   </div>
@@ -3028,8 +3069,8 @@ export default function Tracker() {
                                   placeholder="Description"
                                 />
                               </div>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <div style={{ width: 80 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 6 }}>
+                                <div>
                                   <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
                                     QTY
                                   </div>
@@ -3043,9 +3084,20 @@ export default function Tracker() {
                                     min={1}
                                   />
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2 }}>
+                                <div>
+                                  <div style={{ fontSize: 9, color: '#445', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     COST
+                                    {item.priceSource === 'catalog' ? (
+                                      <span
+                                        title={`OCR read: $${item.ocrCost}`}
+                                        style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#0a2a0a', color: '#4f4', border: '1px solid #1a4a1a', opacity: 0.8 }}
+                                      >📋 catalog</span>
+                                    ) : (
+                                      <span
+                                        title="Not in catalog — verify manually"
+                                        style={{ fontSize: 9, padding: '1px 4px', borderRadius: 3, background: '#2a2a0a', color: '#ff4', border: '1px solid #4a4a1a', opacity: 0.8 }}
+                                      >👁 ocr</span>
+                                    )}
                                   </div>
                                   <input
                                     type="number"
