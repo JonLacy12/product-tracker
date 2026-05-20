@@ -24,179 +24,6 @@ const VENDORS = [
   'Xtant',
   'ZavationCorelink',
 ];
-const NEGA = [
-  { p: 'OsteoSelect', i: '309005', d: 'OsteoSelect DBM Putty 0.5cc', f: 47.5 },
-  { p: 'OsteoSelect', i: '309010', d: 'OsteoSelect DBM Putty 1.0cc', f: 95 },
-  { p: 'OsteoSelect', i: '309025', d: 'OsteoSelect DBM Putty 2.5cc', f: 237.5 },
-  { p: 'OsteoSelect', i: '309050', d: 'OsteoSelect DBM Putty 5.0cc', f: 475 },
-  { p: 'OsteoSelect', i: '309100', d: 'OsteoSelect DBM Putty 10.0cc', f: 850 },
-  { p: 'OsteoSelect', i: '359010', d: 'OsteoSelect DBM Putty 1.0cc Syringe', f: 95 },
-  { p: 'OsteoSelect', i: '359025', d: 'OsteoSelect DBM Putty 2.5cc Syringe', f: 237.5 },
-  { p: 'OsteoSelect', i: '359050', d: 'OsteoSelect DBM Putty 5.0cc Syringe', f: 475 },
-  { p: 'OsteoSelect', i: '359100', d: 'OsteoSelect DBM Putty 10.0cc Syringe', f: 850 },
-  { p: 'OsteoSelect Plus', i: '309425', d: 'OsteoSelect Plus DBM Putty 2.5cc', f: 237.5 },
-  { p: 'OsteoSelect Plus', i: '309450', d: 'OsteoSelect Plus DBM Putty 5.0cc', f: 475 },
-  { p: 'OsteoSelect Plus', i: '309500', d: 'OsteoSelect Plus DBM Putty 10.0cc', f: 850 },
-  { p: 'OsteoSelect Plus', i: '359425', d: 'OsteoSelect Plus DBM Putty 2.5cc Syringe', f: 237.5 },
-  { p: 'OsteoSelect Plus', i: '359450', d: 'OsteoSelect Plus DBM Putty 5.0cc Syringe', f: 475 },
-  { p: 'OsteoSelect Plus', i: '359500', d: 'OsteoSelect Plus DBM Putty 10.0cc Syringe', f: 850 },
-  { p: 'OsteoMax', i: '549010', d: 'OsteoMax DBM Putty 1.0cc Syringe', f: 95 },
-  { p: 'OsteoMax', i: '549025', d: 'OsteoMax DBM Putty 2.5cc Syringe', f: 237.5 },
-  { p: 'OsteoMax', i: '549050', d: 'OsteoMax DBM Putty 5.0cc Syringe', f: 475 },
-  { p: 'OsteoMax', i: '549100', d: 'OsteoMax DBM Putty 10.0cc Syringe', f: 850 },
-  { p: 'OsteoVive Plus', i: '203201', d: 'OsteoVive Plus 1.0cc', f: 300 },
-  { p: 'OsteoVive Plus', i: '203202', d: 'OsteoVive Plus 2.0cc', f: 600 },
-  { p: 'OsteoVive Plus', i: '203205', d: 'OsteoVive Plus 5.0cc', f: 1500 },
-  { p: 'OsteoVive Plus', i: '203210', d: 'OsteoVive Plus 10.0cc', f: 3000 },
-  { p: 'OsteoVive Plus', i: '203215', d: 'OsteoVive Plus 15.0cc', f: 3750 },
-  { p: 'OsteoVive Plus', i: '203301', d: 'OsteoVive Plus Jar 1.0cc', f: 300 },
-  { p: 'OsteoVive Plus', i: '203302', d: 'OsteoVive Plus Jar 2.0cc', f: 600 },
-  { p: 'OsteoVive Plus', i: '203305', d: 'OsteoVive Plus Jar 5.0cc', f: 1500 },
-  { p: 'OsteoVive Plus', i: '203310', d: 'OsteoVive Plus Jar 10.0cc', f: 3000 },
-  { p: 'OsteoVive Plus', i: '203315', d: 'OsteoVive Plus Jar 15.0cc', f: 3750 },
-  { p: 'OsteoFactor Pro', i: '122012', d: 'OsteoFactor Pro 0.5cc', f: 500 },
-  { p: 'OsteoFactor Pro', i: '122001', d: 'OsteoFactor Pro 1.0cc', f: 1000 },
-  { p: 'OsteoFactor Pro', i: '122025', d: 'OsteoFactor Pro 2.5cc', f: 1350 },
-  { p: 'OsteoFactor Pro', i: '122005', d: 'OsteoFactor Pro 5.0cc', f: 2150 },
-  { p: 'OsteoFactor Pro', i: '122010', d: 'OsteoFactor Pro 10.0cc', f: 3800 },
-  { p: 'SimpliMix', i: '400015', d: 'SimpliMix Graft Delivery Device', f: 400 },
-  { p: 'OsteoSponge', i: '109405', d: 'OsteoSponge Filler Fine 0.5cc', f: 47.5 },
-  { p: 'OsteoSponge', i: '109210', d: 'OsteoSponge Filler Fine 1.0cc', f: 95 },
-  { p: 'OsteoSponge', i: '109225', d: 'OsteoSponge Filler Fine 2.5cc', f: 220 },
-  { p: 'OsteoSponge', i: '109250', d: 'OsteoSponge Filler Fine 5.0cc', f: 400 },
-  { p: 'OsteoSponge', i: '109310', d: 'OsteoSponge Filler Fine 10.0cc', f: 760 },
-  { p: 'OsteoSponge', i: '109315', d: 'OsteoSponge Filler Fine 15.0cc', f: 1080 },
-  { p: 'OsteoSponge', i: '109410', d: 'OsteoSponge Filler 1.0cc', f: 95 },
-  { p: 'OsteoSponge', i: '109425', d: 'OsteoSponge Filler 2.5cc', f: 220 },
-  { p: 'OsteoSponge', i: '109550', d: 'OsteoSponge Filler 5.0cc', f: 400 },
-  { p: 'OsteoSponge', i: '109510', d: 'OsteoSponge Filler 10.0cc', f: 760 },
-  { p: 'OsteoSponge', i: '109515', d: 'OsteoSponge Filler 15.0cc', f: 1080 },
-  { p: 'OsteoSponge', i: '109530', d: 'OsteoSponge Filler 30.0cc', f: 2040 },
-  { p: 'OsteoSponge', i: '159550', d: 'OsteoSponge Filler 5.0cc Syringe', f: 400 },
-  { p: 'OsteoSponge', i: '109608', d: 'OsteoSponge Block 8mm', f: 190 },
-  { p: 'OsteoSponge', i: '109609', d: 'OsteoSponge Block 8mm 10-Pack', f: 1068.75 },
-  { p: 'OsteoSponge', i: '109610', d: 'OsteoSponge Block 10mm', f: 304 },
-  { p: 'OsteoSponge', i: '109612', d: 'OsteoSponge Block 12mm', f: 369.79 },
-  { p: 'OsteoSponge', i: '109614', d: 'OsteoSponge Block 14mm', f: 587.81 },
-  { p: 'OsteoSponge', i: '109501', d: 'OsteoSponge Disc 10mm', f: 237.5 },
-  { p: 'OsteoSponge', i: '109502', d: 'OsteoSponge Disc 12mm', f: 327.75 },
-  { p: 'OsteoSponge', i: '109503', d: 'OsteoSponge Disc 14mm', f: 418 },
-  { p: 'OsteoSponge', i: '109621', d: 'OsteoSponge Strip 50x5x5mm', f: 465.5 },
-  { p: 'OsteoSponge', i: '109622', d: 'OsteoSponge Strip 50x7x5mm', f: 513 },
-  { p: 'OsteoSponge', i: '109631', d: 'OsteoSponge Strip 20x14x5mm', f: 513 },
-  { p: 'OsteoSponge', i: '109632', d: 'OsteoSponge Strip 20x14x7mm', f: 712.5 },
-  { p: 'OsteoSponge', i: '109633', d: 'OsteoSponge Strip 26x19x7mm', f: 950 },
-  { p: 'OsteoSponge', i: '109637', d: 'OsteoSponge Strip 26x19x7mm 2-Pack', f: 1850 },
-  { p: 'OsteoSponge', i: '109638', d: 'OsteoSponge Strip 26x19x7mm 4-Pack', f: 3781 },
-  { p: 'OsteoSponge', i: '109634', d: 'OsteoSponge Strip 30x10x7mm', f: 741 },
-  { p: 'OsteoSponge', i: '109635', d: 'OsteoSponge Strip 50x10x7mm', f: 950 },
-  { p: 'OsteoSponge', i: '109636', d: 'OsteoSponge Strip 50x20x7mm', f: 1850 },
-  { p: 'OsteoSponge', i: '109640', d: 'OsteoSponge Strip 40x15x5mm', f: 1102 },
-  { p: 'OsteoSponge', i: '109642', d: 'OsteoSponge Strip 40x15x2mm', f: 617.5 },
-  { p: '3Demin', i: '109762', d: '3Demin Cortical Fibers 2.5cc', f: 233.75 },
-  { p: '3Demin', i: '109765', d: '3Demin Cortical Fibers 5.0cc', f: 475 },
-  { p: '3Demin', i: '109760', d: '3Demin Cortical Fibers 10.0cc', f: 750 },
-  { p: '3Demin', i: '109763', d: '3Demin Cortical Fibers 30.0cc', f: 2450 },
-  { p: '3Demin', i: '109776', d: '3Demin Strip 50x10mm Single', f: 817 },
-  { p: '3Demin', i: '109775', d: '3Demin Strip 50x10mm 2-Pack', f: 1258.75 },
-  { p: '3Demin', i: '109771', d: '3Demin Strip 100x10mm 2-Pack', f: 1495 },
-  { p: '3Demin', i: '109772', d: '3Demin Strip 200x10mm 2-Pack', f: 3895 },
-  { p: '3Demin', i: '109786', d: '3Demin Boat 50x25mm Single', f: 1258.75 },
-  { p: '3Demin', i: '109785', d: '3Demin Boat 50x25mm 2-Pack', f: 1495 },
-  { p: '3Demin', i: '109781', d: '3Demin Boat 100x25mm 2-Pack', f: 3277.5 },
-  { p: 'Matriform Si', i: '449050', d: 'Matriform Si Strip 50x25x4mm 5.0cc', f: 600 },
-  { p: 'Matriform Si', i: '449100', d: 'Matriform Si Strip 100x25x4mm 10.0cc', f: 1200 },
-  { p: 'OsteoWrap', i: '109701', d: 'OsteoWrap 10x10mm', f: 72 },
-  { p: 'OsteoWrap', i: '109702', d: 'OsteoWrap 15x10mm', f: 131 },
-  { p: 'OsteoWrap', i: '109703', d: 'OsteoWrap 15x15mm', f: 149 },
-  { p: 'OsteoWrap', i: '109714', d: 'OsteoWrap 70x40mm', f: 2295 },
-  { p: 'OsteoWrap', i: '109715', d: 'OsteoWrap 60x50mm', f: 2608 },
-  { p: 'OrbitalWrap HD', i: '109733', d: 'OrbitalWrap HD 30x30x2mm', f: 750 },
-  { p: 'Atrix-C', i: 'X094-1005', d: 'Atrix-C Cervical Spacer 11x14x5mm', f: 675 },
-  { p: 'Atrix-C', i: 'X094-1006', d: 'Atrix-C Cervical Spacer 11x14x6mm', f: 675 },
-  { p: 'Atrix-C', i: 'X094-1007', d: 'Atrix-C Cervical Spacer 11x14x7mm', f: 675 },
-  { p: 'Atrix-C', i: 'X094-1008', d: 'Atrix-C Cervical Spacer 11x14x8mm', f: 675 },
-  { p: 'Atrix-C', i: 'X094-1009', d: 'Atrix-C Cervical Spacer 11x14x9mm', f: 675 },
-  { p: 'Atrix-C', i: 'X094-1010', d: 'Atrix-C Cervical Spacer 11x14x10mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3000', d: 'Atrix-C Union 11x14x5mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3001', d: 'Atrix-C Union 11x14x6mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3002', d: 'Atrix-C Union 11x14x7mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3003', d: 'Atrix-C Union 11x14x8mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3004', d: 'Atrix-C Union 11x14x9mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3005', d: 'Atrix-C Union 11x14x10mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3006', d: 'Atrix-C Union 11x14x11mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3007', d: 'Atrix-C Union 11x14x12mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3008', d: 'Atrix-C Union 13x16x5mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3009', d: 'Atrix-C Union 13x16x6mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3010', d: 'Atrix-C Union 13x16x7mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3011', d: 'Atrix-C Union 13x16x8mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3012', d: 'Atrix-C Union 13x16x9mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3013', d: 'Atrix-C Union 13x16x10mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3014', d: 'Atrix-C Union 13x16x11mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3015', d: 'Atrix-C Union 13x16x12mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3016', d: 'Atrix-C Union 15x18x5mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3017', d: 'Atrix-C Union 15x18x6mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3018', d: 'Atrix-C Union 15x18x7mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3019', d: 'Atrix-C Union 15x18x8mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3020', d: 'Atrix-C Union 15x18x9mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3021', d: 'Atrix-C Union 15x18x10mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3022', d: 'Atrix-C Union 15x18x11mm', f: 675 },
-  { p: 'Atrix-C Union', i: 'X094-3023', d: 'Atrix-C Union 15x18x12mm', f: 675 },
-  { p: 'DBM+BMA Kit', i: '109560MC', d: 'OsteoSponge Filler BMA Kit 60cc', f: 4700 },
-  { p: 'DBM+BMA Kit', i: '109636MC', d: 'OsteoSponge Strip 50x20x7mm BMA Kit', f: 2950 },
-  { p: 'DBM+BMA Kit', i: '109776MC', d: '3Demin Strip 50x10mm BMA Kit', f: 1767 },
-  { p: 'DBM+BMA Kit', i: '109775MC', d: '3Demin Strip 50x10mm 2pk BMA Kit', f: 2150 },
-  { p: 'DBM+BMA Kit', i: '109771MC', d: '3Demin Strip 100x10mm 2pk BMA Kit', f: 3250 },
-  { p: 'DBM+BMA Kit', i: '109786MC', d: '3Demin Boat 50x25mm BMA Kit', f: 2208 },
-  { p: 'DBM+BMA Kit', i: '109785MC', d: '3Demin Boat 50x25mm 2pk BMA Kit', f: 3250 },
-  { p: 'DBM+BMA Kit', i: '109781MC', d: '3Demin Boat 100x25mm 2pk BMA Kit', f: 4227 },
-  { p: 'H-Graft', i: 'X078-0008', d: 'H-Graft Interspinous 8mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0010', d: 'H-Graft Interspinous 10mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0012', d: 'H-Graft Interspinous 12mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0014', d: 'H-Graft Interspinous 14mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0016', d: 'H-Graft Interspinous 16mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0018', d: 'H-Graft Interspinous 18mm', f: 2875 },
-  { p: 'H-Graft', i: 'X078-0020', d: 'H-Graft Interspinous 20mm', f: 2875 },
-  { p: 'Traditional', i: '103015', d: 'Cancellous Crushed 0.1-4mm 5cc', f: 50 },
-  { p: 'Traditional', i: '103115', d: 'Cancellous Crushed 0.1-4mm 15cc', f: 150 },
-  { p: 'Traditional', i: '103130', d: 'Cancellous Crushed 0.1-4mm 30cc', f: 300 },
-  { p: 'Traditional', i: '103045', d: 'Cancellous Crushed 4-10mm 5cc', f: 50 },
-  { p: 'Traditional', i: '103415', d: 'Cancellous Crushed 4-10mm 15cc', f: 150 },
-  { p: 'Traditional', i: '103430', d: 'Cancellous Crushed 4-10mm 30cc', f: 300 },
-  { p: 'Traditional', i: '101006', d: 'Ilium Tricortical Block 6mm', f: 408 },
-  { p: 'Traditional', i: '101007', d: 'Ilium Tricortical Block 7mm', f: 408 },
-  { p: 'Traditional', i: '101008', d: 'Ilium Tricortical Block 8mm', f: 408 },
-  { p: 'Traditional', i: '101009', d: 'Ilium Tricortical Block 9mm', f: 408 },
-  { p: 'Traditional', i: '101010', d: 'Ilium Tricortical Block 10mm', f: 408 },
-  { p: 'Traditional', i: '101011', d: 'Ilium Tricortical Block 11mm', f: 408 },
-  { p: 'Traditional', i: '101012', d: 'Ilium Tricortical Block 12-14mm', f: 484 },
-  { p: 'Traditional', i: '101015', d: 'Ilium Tricortical Block 15mm', f: 528 },
-  { p: 'Traditional', i: '101016', d: 'Ilium Tricortical Block 16-21mm', f: 576 },
-  { p: 'Traditional', i: '101022', d: 'Ilium Tricortical Block 22-25mm', f: 668 },
-  { p: 'Traditional', i: '104205', d: 'Unicortical Block 5mm', f: 500 },
-  { p: 'Traditional', i: '104206', d: 'Unicortical Block 6mm', f: 500 },
-  { p: 'Traditional', i: '104207', d: 'Unicortical Block 7mm', f: 500 },
-  { p: 'Traditional', i: '104208', d: 'Unicortical Block 8mm', f: 500 },
-  { p: 'Traditional', i: '104209', d: 'Unicortical Block 9mm', f: 500 },
-  { p: 'Traditional', i: '104210', d: 'Unicortical Block 10mm', f: 500 },
-  { p: 'Traditional', i: '106040', d: 'Fibula Segment 40-100mm', f: 360 },
-  { p: 'Traditional', i: '106101', d: 'Fibula Segment 101-150mm', f: 450 },
-  { p: 'Traditional', i: '105300', d: 'Femoral Cortical Strut 200mm Split', f: 850 },
-  { p: 'Soft Tissue', i: 'X090-0025-AMN22CM', d: 'Dual Layer Amniotic Membrane 2x2cm', f: 975 },
-  { p: 'Soft Tissue', i: 'X090-0025-AMN44CM', d: 'Dual Layer Amniotic Membrane 4x4cm', f: 1672.5 },
-  { p: 'Soft Tissue', i: 'X090-0025-AMN46CM', d: 'Dual Layer Amniotic Membrane 4x6cm', f: 2400 },
-  { p: 'Soft Tissue', i: 'X090-0025-AMN48CM', d: 'Dual Layer Amniotic Membrane 4x8cm', f: 3000 },
-  { p: 'Tendon', i: '208000', d: 'Achilles Tendon w/ Bone Block', f: 925 },
-  { p: 'Tendon', i: '208002', d: 'Anterior Tibialis Tendon', f: 925 },
-  { p: 'Tendon', i: '208003', d: 'Posterior Tibialis Tendon', f: 925 },
-  { p: 'Tendon', i: '208008', d: 'Gracilis Tendon', f: 925 },
-  { p: 'Tendon', i: '208011', d: 'Semitendinosus Tendon', f: 925 },
-  { p: 'Tendon', i: '208015', d: 'Peroneus', f: 925 },
-  { p: 'Tendon', i: '208009', d: 'Hemi-Patella Tendon', f: 925 },
-  { p: 'Tendon', i: '208014', d: 'Hemi-Patella Tendon w/ Quad', f: 925 },
-  { p: 'Tendon', i: '208012', d: 'Whole Patella Tendon w/ Quad', f: 925 },
-  { p: 'Tendon', i: '208013', d: 'Whole Patella Tendon w/o Quad', f: 925 },
-];
 const NS = [
   { p: 'OsteoSelect', i: '309005', d: 'OsteoSelect DBM Putty 0.5cc', f: 42.5 },
   { p: 'OsteoSelect', i: '309010', d: 'OsteoSelect DBM Putty 1.0cc', f: 85 },
@@ -1294,20 +1121,10 @@ const CELL_NS = [
   { g: 'Cellerate RX', i: 'WCI-01-SACRXP', d: 'Cellerate RX Surgical Powder 1g', f: 415 },
   { g: 'Cellerate RX', i: 'WCI-05-SACRXP', d: 'Cellerate RX Surgical Powder 5g', f: 1399 },
 ];
-const CELL_NEGA = [
-  { g: 'Cellerate RX', i: 'WCI-01-SACRXP', d: 'Cellerate RX Surgical Powder 1g', f: 405 },
-  { g: 'Cellerate RX', i: 'WCI-05-SACRXP', d: 'Cellerate RX Surgical Powder 5g', f: 1399 },
-];
 const MIMEDX_NS = [
   { g: 'EpiFix', i: 'GS-5440', d: 'EpiFix 4.0x4.0cm', f: 2895 },
   { g: 'AmnioEffect', i: 'LS-5460', d: 'AmnioEffect 4x6cm', f: 2160 },
   { g: 'AmnioFix', i: 'AAS-5460', d: 'AmnioFix 4x6cm', f: 1800 },
-];
-const MIMEDX_NEGA = [
-  { g: 'EpiFix', i: 'GS-5440', d: 'EpiFix 4.0x4.0cm', f: 2895 },
-  { g: 'AmnioEffect', i: 'LS-5460', d: 'AmnioEffect 4x6cm', f: 2160 },
-  { g: 'AmnioFix', i: 'AAS-5460', d: 'AmnioFix 4x6cm', f: 1800 },
-  { g: 'AxioFill', i: 'PCM-0500', d: 'AxioFill 500mg', f: 1095 },
 ];
 // Searches all hardcoded price catalogs by item number.
 // Returns catalog price + matched vendor name, or null if not in any catalog.
@@ -1315,18 +1132,28 @@ const MIMEDX_NEGA = [
 function lookupCatalogPrice(vendor, itemNumber, facility, overrides = []) {
   if (!itemNumber) return null;
   const normItem = String(itemNumber).trim().toUpperCase().replace(/\s+/g, '');
+  const normFacility = (facility || '').trim();
+  let exactMatch = null;
+  let fallbackMatch = null;
   for (const ov of overrides) {
-    if (String(ov.item_number || '').trim().toUpperCase().replace(/\s+/g, '') === normItem) {
-      return { price: ov.price, matchedVendor: ov.vendor, source: 'override' };
+    if (String(ov.item_number || '').trim().toUpperCase().replace(/\s+/g, '') !== normItem) continue;
+    const ovFacility = (ov.facility || '').trim();
+    if (!ovFacility) {
+      if (!fallbackMatch) fallbackMatch = ov;
+    } else if (ovFacility === normFacility) {
+      exactMatch = ov;
+      break;
     }
   }
+  const ovHit = exactMatch || fallbackMatch;
+  if (ovHit) return { price: ovHit.price, matchedVendor: ovHit.vendor, source: 'override' };
   const catalogs = [
-    { vendor: 'Xtant', cats: facility === 'Northside' ? NS : NEGA },
+    { vendor: 'Xtant', cats: NS },
     { vendor: 'ISTO', cats: ISTO_NS },
     { vendor: 'Spinewave', cats: SW_NS },
     { vendor: 'Royal', cats: ROYAL_NS },
-    { vendor: 'Cellerate', cats: facility === 'Northside' ? CELL_NS : CELL_NEGA },
-    { vendor: 'MiMedx', cats: facility === 'Northside' ? MIMEDX_NS : MIMEDX_NEGA },
+    { vendor: 'Cellerate', cats: CELL_NS },
+    { vendor: 'MiMedx', cats: MIMEDX_NS },
   ];
   const normVendor = (vendor || '').toLowerCase();
   // Priority a: item match within the vendor's own catalog
@@ -1345,23 +1172,6 @@ function lookupCatalogPrice(vendor, itemNumber, facility, overrides = []) {
   }
   return null;
 }
-const SHEETS_ALL = {
-  Xtant: {
-    'Northeast Georgia': { label: 'NEGA #10009722 — July 2025', data: NEGA },
-    Northside: { label: 'Northside Hospital — Nov 2025', data: NS },
-  },
-  ISTO: { Northside: { label: 'Northside Hospital — Contracted', data: ISTO_NS } },
-  Spinewave: { Northside: { label: 'Northside Health GA — Eff. 2/16/2024', data: SW_NS } },
-  Royal: { Northside: { label: 'Northside Hospital — Contracted', data: ROYAL_NS } },
-  Cellerate: {
-    Northside: { label: 'Northside Hospital — Contracted', data: CELL_NS },
-    'Northeast Georgia': { label: 'NEGA — Contracted', data: CELL_NEGA },
-  },
-  MiMedx: {
-    Northside: { label: 'Northside Hospital — Contracted', data: MIMEDX_NS },
-    'Northeast Georgia': { label: 'NEGA — Contracted', data: MIMEDX_NEGA },
-  },
-};
 const SHEETS_NS = {
   Xtant: { Northside: { label: 'Northside Hospital — Nov 2025', data: NS } },
   ISTO: { Northside: { label: 'Northside Hospital — Contracted', data: ISTO_NS } },
@@ -1374,8 +1184,8 @@ const SYSTEMS = {
   test: {
     label: 'Test',
     prefix: 'goodole2026',
-    facilities: ['Northeast Georgia', 'Northside'],
-    sheets: SHEETS_ALL,
+    facilities: ['Northside'],
+    sheets: SHEETS_NS,
     csv: 'Test_Products_2026.csv',
     color: '#f80',
   },
@@ -1390,8 +1200,8 @@ const SYSTEMS = {
   burch: {
     label: 'Burch',
     prefix: 'burch',
-    facilities: ['Northeast Georgia', 'Northside'],
-    sheets: SHEETS_ALL,
+    facilities: ['Northside'],
+    sheets: SHEETS_NS,
     csv: 'Burch_Products_2026.csv',
     color: '#6af',
   },
@@ -1806,13 +1616,7 @@ export default function Tracker() {
     setReviewData((prev) => prev.filter((_, i) => i !== si));
   // Maps fuzzy facility strings returned by OCR to canonical app values.
   // Add future facilities here (e.g. Forsyth, Cherokee, Duluth, Lawrenceville) as needed.
-  const normalizeFacility = (raw, fallback) => {
-    if (!raw) return fallback;
-    const s = raw.toLowerCase();
-    if (s.includes('northside')) return 'Northside';
-    if (s.includes('northeast') || s.includes('nega') || s.includes('ngmc')) return 'Northeast Georgia';
-    return fallback;
-  };
+  const normalizeFacility = (_raw, _fallback) => 'Northside';
   const saveExtracted = async () => {
     const newEntries = [];
     for (const result of reviewData) {
@@ -1887,14 +1691,7 @@ export default function Tracker() {
     }
   };
   const lookup = (item, fac) => {
-    for (const cats of [
-      fac === 'Northside' ? NS : NEGA,
-      ISTO_NS,
-      SW_NS,
-      ROYAL_NS,
-      fac === 'Northside' ? CELL_NS : CELL_NEGA,
-      fac === 'Northside' ? MIMEDX_NS : MIMEDX_NEGA,
-    ]) {
+    for (const cats of [NS, ISTO_NS, SW_NS, ROYAL_NS, CELL_NS, MIMEDX_NS]) {
       const m = cats.find((x) => x.i === item);
       if (m) return m.f;
     }
@@ -2111,8 +1908,8 @@ export default function Tracker() {
       padding: '16px 18px',
     },
   };
-  const fc = (f) => (f === 'Northside' ? '#f0a' : '#0af');
-  const fl = (f) => (f === 'Northside' ? 'NS' : 'NEGA');
+  const fc = (_f) => '#f0a';
+  const fl = (_f) => 'NS';
   return (
     <div
       style={{
@@ -5209,12 +5006,7 @@ export default function Tracker() {
                 {uv.map((v) => {
                   const rows = entries.filter((e) => e.vendor === v);
                   const t = rows.reduce((s, r) => s + r.cost, 0);
-                  const nt = rows
-                    .filter((r) => r.facility === 'Northeast Georgia')
-                    .reduce((s, r) => s + r.cost, 0);
-                  const nst = rows
-                    .filter((r) => r.facility === 'Northside')
-                    .reduce((s, r) => s + r.cost, 0);
+                  const nst = rows.reduce((s, r) => s + r.cost, 0);
                   return (
                     <div key={v} style={S.card}>
                       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{v}</div>
@@ -5225,20 +5017,6 @@ export default function Tracker() {
                         <span style={{ fontSize: 11, color: '#556' }}>({rows.length})</span>
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                        {nt > 0 && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              color: '#0af',
-                              background: '#001a2a',
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              fontWeight: 700,
-                            }}
-                          >
-                            NEGA: {fmt(nt)}
-                          </span>
-                        )}
                         {nst > 0 && (
                           <span
                             style={{
@@ -5374,21 +5152,8 @@ export default function Tracker() {
                       { l: mLabel.toUpperCase(), v: fmt(mTotal), c: '#6f6' },
                       { l: 'ENTRIES', v: fe.length, c: '#f80' },
                       {
-                        l: 'NEGA',
-                        v: fmt(
-                          fe
-                            .filter((e) => e.facility === 'Northeast Georgia')
-                            .reduce((s, e) => s + e.cost, 0)
-                        ),
-                        c: '#0af',
-                      },
-                      {
                         l: 'NORTHSIDE',
-                        v: fmt(
-                          fe
-                            .filter((e) => e.facility === 'Northside')
-                            .reduce((s, e) => s + e.cost, 0)
-                        ),
+                        v: fmt(fe.reduce((s, e) => s + e.cost, 0)),
                         c: '#f0a',
                       },
                       { l: 'PRODUCTS', v: mUp, c: '#6af' },
@@ -5699,16 +5464,6 @@ export default function Tracker() {
                   emails: [
                     'stantonteam@istobiologics.com',
                     'Chamby@istobiologics.com',
-                    'billonly@eleven-medical.com',
-                    'binny.virk@eleven-medical.com',
-                    'Coled7152@gmail.com',
-                  ],
-                },
-                {
-                  v: 'ISTO (NEGA)',
-                  note: 'via Reliance Med',
-                  emails: [
-                    'support@reliancemed.us',
                     'billonly@eleven-medical.com',
                     'binny.virk@eleven-medical.com',
                     'Coled7152@gmail.com',
