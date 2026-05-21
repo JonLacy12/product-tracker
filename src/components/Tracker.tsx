@@ -1118,13 +1118,13 @@ const ROYAL_NS = [
   },
 ];
 const CELL_NS = [
-  { g: 'Cellerate RX', i: 'WCI-01-SACRXP', d: 'Cellerate RX Surgical Powder 1g', f: 415 },
-  { g: 'Cellerate RX', i: 'WCI-05-SACRXP', d: 'Cellerate RX Surgical Powder 5g', f: 1399 },
+  { p: 'Cellerate RX', i: 'WCI-01-SACRXP', d: 'Cellerate RX Surgical Powder 1g', f: 415 },
+  { p: 'Cellerate RX', i: 'WCI-05-SACRXP', d: 'Cellerate RX Surgical Powder 5g', f: 1399 },
 ];
 const MIMEDX_NS = [
-  { g: 'EpiFix', i: 'GS-5440', d: 'EpiFix 4.0x4.0cm', f: 2895 },
-  { g: 'AmnioEffect', i: 'LS-5460', d: 'AmnioEffect 4x6cm', f: 2160 },
-  { g: 'AmnioFix', i: 'AAS-5460', d: 'AmnioFix 4x6cm', f: 1800 },
+  { p: 'EpiFix', i: 'GS-5440', d: 'EpiFix 4.0x4.0cm', f: 2895 },
+  { p: 'AmnioEffect', i: 'LS-5460', d: 'AmnioEffect 4x6cm', f: 2160 },
+  { p: 'AmnioFix', i: 'AAS-5460', d: 'AmnioFix 4x6cm', f: 1800 },
 ];
 const SUA_SPONTE_NS = [
   { p: 'Uncategorized', i: '600-2535', d: 'Tap, 35mm, Disposable', f: 340 },
