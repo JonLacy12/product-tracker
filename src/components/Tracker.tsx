@@ -10216,6 +10216,12 @@ export default function Tracker() {
                   {isOpen && (
                     <div style={{ borderTop: '1px solid #1a1a28', padding: '4px 14px 8px' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                        <colgroup>
+                          <col style={{ width: 110 }} />
+                          <col />
+                          {/* 90px holds up to $99,999.00 (10 chars) in 12px monospace; max seeded price is $8,676.00 */}
+                          <col style={{ width: 90 }} />
+                        </colgroup>
                         <tbody>
                           {items.map((x, i) => (
                             <tr
@@ -10230,8 +10236,7 @@ export default function Tracker() {
                                   fontSize: 11,
                                   fontFamily: 'monospace',
                                   color: '#667',
-                                  width: 110,
-                                  whiteSpace: 'nowrap',
+                                  wordBreak: 'break-word',
                                 }}
                               >
                                 {x.i}
@@ -10248,7 +10253,6 @@ export default function Tracker() {
                                   fontFamily: 'monospace',
                                   textAlign: 'right',
                                   whiteSpace: 'nowrap',
-                                  width: 80,
                                 }}
                               >
                                 {fmt(x.f)}
