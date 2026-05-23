@@ -17,6 +17,7 @@ export interface ExtractedSheet {
 export async function extractBillSheet(
   imageBase64: string,
   mediaType = 'image/jpeg',
+  mode = 'bill-sheet',
 ): Promise<ExtractedSheet> {
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-billsheet`;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -28,7 +29,7 @@ export async function extractBillSheet(
       apikey: key,
       Authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({ image_base64: imageBase64, media_type: mediaType }),
+    body: JSON.stringify({ image_base64: imageBase64, media_type: mediaType, mode }),
   });
 
   if (!res.ok) {

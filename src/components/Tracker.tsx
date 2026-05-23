@@ -4,6 +4,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { extractBillSheet, fileToBase64 } from '@/lib/extractor';
 import { pdfToImages } from '@/lib/pdfToImages';
 import { supabase } from '@/lib/supabase';
+import { buildCatalogRows } from '@/lib/normalizeCatalog';
 
 const VENDORS = [
   '4Web',
@@ -204,26 +205,26 @@ const NS = [
   { p: 'Traditional', i: '105300', d: 'Femoral Cortical Strut 200mm Split', f: 850 },
 ];
 const ISTO_NS = [
-  { g: 'InQu', i: 'IQSP-PP-110', d: 'InQu Paste Mix Plus 10cc', f: 1750 },
-  { g: 'OsseoGEN', i: '20100010', d: 'OsseoGEN cellular bone matrix 1cc', f: 360 },
-  { g: 'OsseoGEN', i: '20100020', d: 'OsseoGEN cellular bone matrix 2cc', f: 675 },
-  { g: 'OsseoGEN', i: '20100050', d: 'OsseoGEN cellular bone matrix 5cc', f: 1640 },
-  { g: 'OsseoGEN', i: '20100100', d: 'OsseoGEN cellular bone matrix 10cc', f: 3350 },
-  { g: 'OsseoGEN', i: '20100150', d: 'OsseoGEN cellular bone matrix 15cc', f: 4800 },
-  { g: 'Fibrant Anchors', i: 'IFLX-FA-5560', d: 'Fibrant Anchor, Fits 5.5/6.0 Screw', f: 1535 },
-  { g: 'Fibrant Anchors', i: 'IFLX-FA-6570', d: 'Fibrant Anchor, Fits 6.5/7.0 Screw', f: 1535 },
-  { g: 'Fibrant Anchors', i: 'IFLX-FA-7580', d: 'Fibrant Anchor, Fits 7.5/8.0 Screw', f: 1535 },
-  { g: 'Fibrant Anchors', i: 'IFLX-FA-8590', d: 'Fibrant Anchor, Fits 8.5/9.0 Screw', f: 1535 },
-  { g: 'Fibrant Paks', i: 'IFLX-FBG-SM', d: 'Fibrant Pak 1-Level (5cm)', f: 2050 },
-  { g: 'Fibrant Paks', i: 'IFLX-FBG-SM-DC', d: 'Fibrant Pak 1-Level Dual + 5cc chips', f: 3421 },
-  { g: 'Fibrant Paks', i: 'IFLX-FBG-LG', d: 'Fibrant Pak 2-Level (10cm)', f: 3700 },
-  { g: 'Fibrant Paks', i: 'IFLX-FBG-LG-DC', d: 'Fibrant Pak 2-Level Dual + 15cc chips', f: 6693 },
-  { g: 'ProteiOS', i: '60100010', d: 'ProteiOS growth factor small', f: 1185 },
-  { g: 'ProteiOS', i: '60100025', d: 'ProteiOS growth factor medium', f: 1650 },
-  { g: 'ProteiOS', i: '60100050', d: 'ProteiOS growth factor large', f: 2400 },
-  { g: 'ProteiOS', i: '60100100', d: 'ProteiOS growth factor x-large', f: 3160 },
-  { g: 'Fibrant Bullets', i: 'IFLX-FBL-0605', d: 'Fibrant Bullet 5 Pack 6mm', f: 1650 },
-  { g: 'Fibrant Bullets', i: 'IFLX-FBL-0610', d: 'Fibrant Bullet 10 Pack 6mm', f: 2700 },
+  { p: 'InQu', i: 'IQSP-PP-110', d: 'InQu Paste Mix Plus 10cc', f: 1750 },
+  { p: 'OsseoGEN', i: '20100010', d: 'OsseoGEN cellular bone matrix 1cc', f: 360 },
+  { p: 'OsseoGEN', i: '20100020', d: 'OsseoGEN cellular bone matrix 2cc', f: 675 },
+  { p: 'OsseoGEN', i: '20100050', d: 'OsseoGEN cellular bone matrix 5cc', f: 1640 },
+  { p: 'OsseoGEN', i: '20100100', d: 'OsseoGEN cellular bone matrix 10cc', f: 3350 },
+  { p: 'OsseoGEN', i: '20100150', d: 'OsseoGEN cellular bone matrix 15cc', f: 4800 },
+  { p: 'Fibrant Anchors', i: 'IFLX-FA-5560', d: 'Fibrant Anchor, Fits 5.5/6.0 Screw', f: 1535 },
+  { p: 'Fibrant Anchors', i: 'IFLX-FA-6570', d: 'Fibrant Anchor, Fits 6.5/7.0 Screw', f: 1535 },
+  { p: 'Fibrant Anchors', i: 'IFLX-FA-7580', d: 'Fibrant Anchor, Fits 7.5/8.0 Screw', f: 1535 },
+  { p: 'Fibrant Anchors', i: 'IFLX-FA-8590', d: 'Fibrant Anchor, Fits 8.5/9.0 Screw', f: 1535 },
+  { p: 'Fibrant Paks', i: 'IFLX-FBG-SM', d: 'Fibrant Pak 1-Level (5cm)', f: 2050 },
+  { p: 'Fibrant Paks', i: 'IFLX-FBG-SM-DC', d: 'Fibrant Pak 1-Level Dual + 5cc chips', f: 3421 },
+  { p: 'Fibrant Paks', i: 'IFLX-FBG-LG', d: 'Fibrant Pak 2-Level (10cm)', f: 3700 },
+  { p: 'Fibrant Paks', i: 'IFLX-FBG-LG-DC', d: 'Fibrant Pak 2-Level Dual + 15cc chips', f: 6693 },
+  { p: 'ProteiOS', i: '60100010', d: 'ProteiOS growth factor small', f: 1185 },
+  { p: 'ProteiOS', i: '60100025', d: 'ProteiOS growth factor medium', f: 1650 },
+  { p: 'ProteiOS', i: '60100050', d: 'ProteiOS growth factor large', f: 2400 },
+  { p: 'ProteiOS', i: '60100100', d: 'ProteiOS growth factor x-large', f: 3160 },
+  { p: 'Fibrant Bullets', i: 'IFLX-FBL-0605', d: 'Fibrant Bullet 5 Pack 6mm', f: 1650 },
+  { p: 'Fibrant Bullets', i: 'IFLX-FBL-0610', d: 'Fibrant Bullet 10 Pack 6mm', f: 2700 },
 ];
 // Spinewave — Northside Health GA — 2026 pricing (Preferred/contracted column)
 // Source: Northside_Health-GA_Spine_Wave_Pricing PDF (38 pp). f = Preferred Pricing.
@@ -25291,8 +25292,8 @@ export default function Tracker() {
     setExtractDone(0);
     setExtractTotal(files.length);
 
-    // OCR all files, collect {p,i,d,f} rows
-    const allRows = [];
+    // Collect raw price-sheet items across all pages/files
+    const allItems = [];
     let guessedVendor = '';
     let guessedLabel = files[0]?.name ?? '';
 
@@ -25308,48 +25309,33 @@ export default function Tracker() {
         for (let i = 0; i < pages.length; i += CONCURRENCY) {
           const batch = pages.slice(i, i + CONCURRENCY);
           const batchSheets = await Promise.all(batch.map(async b64 => {
-            try { return await extractBillSheet(b64, 'image/jpeg'); } catch { return null; }
+            try { return await extractBillSheet(b64, 'image/jpeg', 'price-sheet'); } catch { return null; }
           }));
           for (const sheet of batchSheets) {
             if (!sheet) continue;
-            if (sheet.items?.length && !guessedVendor) {
-              guessedVendor = sheet.items.find(x => x.vendor)?.vendor ?? '';
-            }
-            for (const item of sheet.items ?? []) {
-              allRows.push({
-                p: item.product_name?.trim() || 'Uncategorized',
-                i: item.item_number?.trim() || '',
-                d: item.description?.trim() || '',
-                f: item.cost ?? 0,
-              });
-            }
+            if (sheet.vendor && !guessedVendor) guessedVendor = sheet.vendor;
+            for (const item of sheet.items ?? []) allItems.push(item);
           }
           setExtractDone(d => d + batch.length);
         }
       } else {
         try {
           const base64 = await fileToBase64(file);
-          const sheet = await extractBillSheet(base64, file.type || 'image/jpeg');
-          if (sheet.items?.length && !guessedVendor) {
-            guessedVendor = sheet.items.find(x => x.vendor)?.vendor ?? '';
-          }
-          for (const item of sheet.items ?? []) {
-            allRows.push({
-              p: item.product_name?.trim() || 'Uncategorized',
-              i: item.item_number?.trim() || '',
-              d: item.description?.trim() || '',
-              f: item.cost ?? 0,
-            });
-          }
+          const sheet = await extractBillSheet(base64, file.type || 'image/jpeg', 'price-sheet');
+          if (sheet.vendor && !guessedVendor) guessedVendor = sheet.vendor;
+          for (const item of sheet.items ?? []) allItems.push(item);
         } catch { /* silent */ }
         setExtractDone(d => d + 1);
       }
     }
 
     setExtracting(false);
-    if (!allRows.length) { notify('No items extracted — try a clearer image', false); return; }
+    const result = buildCatalogRows(allItems);
+    if (!result.rows.length) { notify('No items extracted — try a clearer image', false); return; }
     setPsReview({
-      rows: allRows,
+      rows: result.rows,
+      groups: result.groups,
+      dropped: result.dropped,
       vendor: guessedVendor,
       label: guessedLabel.replace(/\.[^.]+$/, ''),
       facility: psFac,
@@ -25700,7 +25686,7 @@ export default function Tracker() {
   if (isSavedVendor && sd.length > 0) {
     sd = sd.map((row) => ({
       ...row,
-      p: row.d ? row.d.split(',')[0].trim() : row.p || 'Uncategorized',
+      p: row.p?.trim() || (row.d ? row.d.split(',')[0].trim() : 'Uncategorized'),
     }));
   }
   if (psQ) {
@@ -28691,9 +28677,21 @@ export default function Tracker() {
                       style={{ ...S.inp, flex: 2, minWidth: 160 }}
                     />
                   </div>
-                  <div style={{ fontSize: 11, color: '#667', marginBottom: 12 }}>
-                    {psReview.rows.length} rows extracted · {psReview.facility}
+                  <div style={{ fontSize: 11, color: '#667', marginBottom: 6 }}>
+                    {psReview.rows.length} rows · {(psReview.groups ?? []).length} groups
+                    {psReview.dropped > 0 && ` · ${psReview.dropped} duplicates removed`}
+                    {' · '}{psReview.facility}
                   </div>
+                  {(psReview.groups ?? []).length > 0 && (
+                    <div style={{ marginBottom: 12, maxHeight: 120, overflowY: 'auto', background: '#0d0d1a', borderRadius: 6, padding: '6px 10px' }}>
+                      {(psReview.groups ?? []).map(g => (
+                        <div key={g.name} style={{ fontSize: 10, color: '#889', lineHeight: 1.7 }}>
+                          <span style={{ color: '#aac' }}>{g.name}</span>
+                          {' — '}{g.count} {g.count === 1 ? 'item' : 'items'}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={savePriceSheet}

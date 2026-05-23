@@ -61,6 +61,24 @@ Self-verification (perform this INTERNALLY before writing your response — DO N
 
 FINAL OUTPUT REQUIREMENT: Your entire response must be the final JSON object and nothing else. Do NOT write phrases like "Let me", "I need to", "Looking at", "Let's verify". Do NOT include markdown code fences. Do NOT include preamble, commentary, or explanation. Start your response with the opening brace { and end with the closing brace }. The first character of your response must be {.`;
 
+const PRICE_SHEET_PROMPT = `You are reading ONE page of a medical-device VENDOR PRICE CATALOG (a price list, not a surgical bill sheet). Extract every product line item on this page.
+
+First, identify the product SYSTEM/SECTION this page belongs to. It is usually a bold title at the top of the page, a section header, or a repeated tag in the page header/footer (e.g. "GRUVE Anterior Cervical Plate System", "SOLSTICE Occipito-Cervico-Thoracic"). Use that exact system name for every item on the page.
+
+For each line item return:
+- system: the system/section name for this page (string)
+- item_number: the catalog/part number exactly as printed (string)
+- description: the product description exactly as printed, INCLUDING any sizes/dimensions (string)
+- price: the unit price as a number with no $ or commas. If it says "Not Contracted", "N/A", or is blank, use null.
+
+Rules:
+- Do NOT invent, merge, or skip rows. One object per printed line.
+- Do NOT strip or alter sizes from the description — copy it verbatim.
+- Ignore headers like "Catalog Number Description Unit Price" and any confidentiality/footer text.
+
+Return ONLY valid JSON, no prose:
+{"vendor": "<vendor name if visible on the page, else null>", "items": [{"system": "...", "item_number": "...", "description": "...", "price": 0}]}`;
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -82,14 +100,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonResponse({ error: "ANTHROPIC_API_KEY is not configured" }, 500);
   }
 
-  let body: { image_base64?: string; media_type?: string };
+  let body: { image_base64?: string; media_type?: string; mode?: string };
   try {
     body = await req.json();
   } catch {
     return jsonResponse({ error: "Request body must be valid JSON" }, 400);
   }
 
-  const { image_base64, media_type = "image/jpeg" } = body;
+  const { image_base64, media_type = "image/jpeg", mode = "bill-sheet" } = body;
 
   if (!image_base64 || typeof image_base64 !== "string") {
     return jsonResponse({ error: "image_base64 is required" }, 400);
@@ -102,6 +120,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       400,
     );
   }
+
+  const prompt = mode === "price-sheet" ? PRICE_SHEET_PROMPT : EXTRACTION_PROMPT;
 
   let anthropicRes: Response;
   try {
@@ -130,7 +150,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               },
               {
                 type: "text",
-                text: EXTRACTION_PROMPT,
+                text: prompt,
               },
             ],
           },
@@ -174,7 +194,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .replace(/\s*```\s*$/, "")
     .trim();
 
-  let extracted: { facility: string | null; date: string | null; items: unknown[] };
+  let extracted: unknown;
   try {
     extracted = JSON.parse(stripped);
   } catch {
