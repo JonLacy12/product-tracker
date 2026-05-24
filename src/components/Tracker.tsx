@@ -24943,6 +24943,8 @@ export default function Tracker() {
   const [tab, setTab] = useState('products');
   const [vf, setVf] = useState('All');
   const [ff, setFf] = useState('All');
+  const [yearF, setYearF] = useState('All');
+  const [monthF, setMonthF] = useState('All');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('date-asc');
   const [status, setStatus] = useState('loading');
@@ -25542,6 +25544,10 @@ export default function Tracker() {
       `Removed: ${e?.productName || 'entry'}`
     );
   };
+  const clearAll = async () => {
+    if (!window.confirm(`Delete all ${entries.length} entries for ${CFG.label}? This cannot be undone.`)) return;
+    await save([], `Cleared all ${entries.length} entries`);
+  };
   const csv = () => {
     const c =
       'Vendor,Facility,Date,Cost,Case Label,Product,Item#,Description,Qty,DateSubmitted,SubmittedBy\n' +
@@ -25646,7 +25652,17 @@ export default function Tracker() {
     dlFile(rows.join('\n'), CFG.label + '_Commission_Reconciliation.csv');
     notify('Reconciliation exported!');
   };
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const allYears = [...new Set(entries.map((e) => e.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+  const monthsInYear = [...new Set(
+    entries
+      .filter((e) => yearF === 'All' || e.date?.startsWith(yearF))
+      .map((e) => e.date?.slice(5, 7))
+      .filter(Boolean)
+  )].sort();
   let fil = entries;
+  if (yearF !== 'All') fil = fil.filter((e) => e.date?.startsWith(yearF));
+  if (monthF !== 'All') fil = fil.filter((e) => e.date?.slice(5, 7) === monthF);
   if (vf !== 'All') fil = fil.filter((e) => e.vendor === vf);
   if (ff !== 'All') fil = fil.filter((e) => e.facility === ff);
   if (q) {
@@ -25937,6 +25953,26 @@ export default function Tracker() {
                 style={{ ...S.inp, maxWidth: 200, background: '#0b0b14' }}
               />
               <select
+                value={yearF}
+                onChange={(e) => { setYearF(e.target.value); setMonthF('All'); }}
+                style={{ ...S.inp, width: 80 }}
+              >
+                <option value="All">All Years</option>
+                {allYears.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <select
+                value={monthF}
+                onChange={(e) => setMonthF(e.target.value)}
+                style={{ ...S.inp, width: 72 }}
+              >
+                <option value="All">All Months</option>
+                {monthsInYear.map((m) => (
+                  <option key={m} value={m}>{MONTH_NAMES[parseInt(m, 10) - 1]}</option>
+                ))}
+              </select>
+              <select
                 value={vf}
                 onChange={(e) => setVf(e.target.value)}
                 style={{ ...S.inp, width: 150 }}
@@ -25970,6 +26006,14 @@ export default function Tracker() {
                 <option value="cost-desc">Cost ↓</option>
                 <option value="vendor">Vendor</option>
               </select>
+              {sys === 'test' && entries.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  style={{ ...S.inp, background: '#1a0a0a', color: '#f66', border: '1px solid #3e1e1e', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600 }}
+                >
+                  Clear All
+                </button>
+              )}
               <span style={{ fontSize: 11, color: '#445', marginLeft: 'auto' }}>
                 {fil.length} items · {fmt(fil.reduce((s, e) => s + e.cost, 0))}
               </span>
@@ -29572,8 +29616,8 @@ export default function Tracker() {
           onClick={() => inboxRef.current?.click()}
           style={{
             position: 'fixed',
-            top: 16,
-            right: 16,
+            top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+            right: 'calc(env(safe-area-inset-right, 0px) + 12px)',
             width: 40,
             height: 40,
             borderRadius: 20,
