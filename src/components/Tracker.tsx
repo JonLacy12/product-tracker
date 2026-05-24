@@ -25010,6 +25010,7 @@ export default function Tracker() {
   });
   const commDocRef = useRef(null);
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [viewingBS, setViewingBS] = useState(null); // { url, fileType }
   const DEFAULT_COMM_RATES = [
     { vendor: 'Amplify', type: 'flat', pct: 45, perProduct: [] },
     { vendor: '4WEB', type: 'per-product', pct: 50, perProduct: [{ product: 'TLIF', pct: 60 }] },
@@ -25247,6 +25248,7 @@ export default function Tracker() {
           const normalizedFacility = normalizeFacility(sheet.facility, form.facility);
           return {
             fileName,
+            file,
             error: null,
             sheet: {
               facility: normalizedFacility,
@@ -25277,7 +25279,7 @@ export default function Tracker() {
           };
         } catch (err) {
           setExtractDone((d) => d + 1);
-          return { fileName, error: String(err.message || err), sheet: null };
+          return { fileName, file: null, error: String(err.message || err), sheet: null };
         }
       })
     );
@@ -25429,11 +25431,49 @@ export default function Tracker() {
           quantity: Number(item.quantity) || 1,
           dateSubmitted: new Date().toISOString().slice(0, 10),
           submittedBy: form.submittedBy || '',
+          bill_sheet_id: null,
         });
       }
     }
     setReviewData(null);
     if (newEntries.length === 0) return;
+
+    // Attempt to upload the primary file and get a bill_sheets id.
+    // Non-blocking: entries always save; bill_sheet_id is best-effort.
+    let billSheetId = null;
+    const primaryResult = reviewData.find((r) => r.file && r.sheet);
+    if (primaryResult) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const file = primaryResult.file;
+        const ext = file.type.includes('pdf') ? 'pdf' : file.type.includes('png') ? 'png' : 'jpg';
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('bill-sheets')
+          .upload(path, file, { contentType: file.type });
+        if (!uploadErr) {
+          const primarySheet = primaryResult.sheet;
+          const { data: bsRow, error: insertErr } = await supabase
+            .from('bill_sheets')
+            .insert({
+              file_path: path,
+              file_type: file.type,
+              facility: primarySheet.facility || '',
+              date: primarySheet.date || form.date || '',
+              case_label: primarySheet.case_label || '',
+            })
+            .select()
+            .single();
+          if (!insertErr && bsRow) billSheetId = bsRow.id;
+        }
+      } catch {
+        // Non-blocking — fall through with billSheetId = null
+      }
+    }
+    if (billSheetId) {
+      for (const e of newEntries) e.bill_sheet_id = billSheetId;
+    }
+
     await save([...entries, ...newEntries], null);
     notify(`${newEntries.length} item${newEntries.length !== 1 ? 's' : ''} saved`);
   };
@@ -25562,6 +25602,23 @@ export default function Tracker() {
     const archived = entries.filter((e) => e.archived_at);
     if (!window.confirm(`Permanently delete all ${archived.length} archived entries? This cannot be undone.`)) return;
     await save(entries.filter((e) => !e.archived_at), `Purged ${archived.length} archived entries`);
+  };
+  const openBillSheet = async (billSheetId) => {
+    try {
+      const { data: bsRow, error: fetchErr } = await supabase
+        .from('bill_sheets')
+        .select('file_path, file_type')
+        .eq('id', billSheetId)
+        .single();
+      if (fetchErr || !bsRow) { notify('Could not load attachment', false); return; }
+      const { data: signed, error: urlErr } = await supabase.storage
+        .from('bill-sheets')
+        .createSignedUrl(bsRow.file_path, 300);
+      if (urlErr || !signed?.signedUrl) { notify('Could not generate file URL', false); return; }
+      setViewingBS({ url: signed.signedUrl, fileType: bsRow.file_type });
+    } catch {
+      notify('Could not open attachment', false);
+    }
   };
   const csv = () => {
     const c =
@@ -26182,19 +26239,30 @@ export default function Tracker() {
                             {e.submittedBy || '—'}
                           </td>
                           <td style={{ padding: '7px 8px' }}>
-                            <button
-                              onClick={() => del(e.id)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#f44',
-                                cursor: 'pointer',
-                                fontSize: 11,
-                                opacity: 0.3,
-                              }}
-                            >
-                              ✕
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {e.bill_sheet_id && (
+                                <button
+                                  onClick={() => openBillSheet(e.bill_sheet_id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}
+                                  title="View bill sheet"
+                                >
+                                  📎
+                                </button>
+                              )}
+                              <button
+                                onClick={() => del(e.id)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#f44',
+                                  cursor: 'pointer',
+                                  fontSize: 11,
+                                  opacity: 0.3,
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -26883,6 +26951,33 @@ export default function Tracker() {
               </div>
             );
           })()}
+        {viewingBS && (
+          <div
+            onClick={() => setViewingBS(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          >
+            <div
+              onClick={(ev) => ev.stopPropagation()}
+              style={{ position: 'relative', background: '#12121e', borderRadius: 16, border: '1px solid #2a2a3a', padding: 16, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: 12, boxSizing: 'border-box' }}
+            >
+              <button
+                onClick={() => setViewingBS(null)}
+                style={{ position: 'absolute', top: -12, right: -12, width: 30, height: 30, borderRadius: 15, background: '#f44', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', fontWeight: 700, zIndex: 1 }}
+              >
+                ✕
+              </button>
+              {viewingBS.fileType?.includes('image') ? (
+                <img src={viewingBS.url} style={{ maxWidth: '85vw', maxHeight: '75vh', borderRadius: 8, objectFit: 'contain' }} alt="Bill sheet" />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+                  <iframe src={viewingBS.url} style={{ width: '80vw', height: '70vh', border: 'none', borderRadius: 8 }} title="Bill sheet PDF" />
+                  <a href={viewingBS.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#6af' }}>Open in new tab ↗</a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {viewingPO && (
           <div
             onClick={() => setViewingPO(null)}

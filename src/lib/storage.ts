@@ -18,6 +18,7 @@ interface RawEntry {
   dateSubmitted?: string;
   submittedBy?: string;
   archived_at?: string | null;
+  bill_sheet_id?: string | null;
 }
 
 interface DbRow {
@@ -35,6 +36,7 @@ interface DbRow {
   date_submitted?: string | null;
   submitted_by?: string | null;
   archived_at?: string | null;
+  bill_sheet_id?: string | null;
 }
 
 const PRODUCTS_SUFFIX = '-products-v3';
@@ -56,6 +58,7 @@ function toDbRow(e: RawEntry, systemId: string, userId: string) {
     date_submitted: e.dateSubmitted || null,
     submitted_by: e.submittedBy || null,
     archived_at: e.archived_at ?? null,
+    bill_sheet_id: e.bill_sheet_id ?? null,
   };
 }
 
@@ -74,6 +77,7 @@ function fromDbRow(r: DbRow) {
     dateSubmitted: r.date_submitted ?? '',
     submittedBy: r.submitted_by ?? '',
     archived_at: r.archived_at ?? null,
+    bill_sheet_id: r.bill_sheet_id ?? null,
   };
 }
 
