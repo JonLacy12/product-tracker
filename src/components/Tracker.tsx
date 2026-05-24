@@ -25538,20 +25538,35 @@ export default function Tracker() {
     }));
   };
   const del = async (id) => {
+    if (!window.confirm('Archive this entry? You can restore it later.')) return;
     const e = entries.find((x) => x.id === id);
-    await save(
-      entries.filter((x) => x.id !== id),
-      `Removed: ${e?.productName || 'entry'}`
-    );
+    const updated = entries.map((x) => x.id === id ? { ...x, archived_at: new Date().toISOString() } : x);
+    await save(updated, `Archived: ${e?.productName || 'entry'}`);
   };
   const clearAll = async () => {
-    if (!window.confirm(`Delete all ${entries.length} entries for ${CFG.label}? This cannot be undone.`)) return;
-    await save([], `Cleared all ${entries.length} entries`);
+    const active = entries.filter((e) => !e.archived_at);
+    if (!window.confirm(`Permanently delete all ${active.length} test products? This cannot be undone.`)) return;
+    await save(entries.filter((e) => e.archived_at), `Cleared all ${active.length} entries`);
+  };
+  const restoreEntry = async (id) => {
+    const e = entries.find((x) => x.id === id);
+    const updated = entries.map((x) => x.id === id ? { ...x, archived_at: null } : x);
+    await save(updated, `Restored: ${e?.productName || 'entry'}`);
+  };
+  const permanentlyDelete = async (id) => {
+    if (!window.confirm('Permanently delete this entry? This cannot be undone.')) return;
+    const e = entries.find((x) => x.id === id);
+    await save(entries.filter((x) => x.id !== id), `Deleted: ${e?.productName || 'entry'}`);
+  };
+  const purgeArchived = async () => {
+    const archived = entries.filter((e) => e.archived_at);
+    if (!window.confirm(`Permanently delete all ${archived.length} archived entries? This cannot be undone.`)) return;
+    await save(entries.filter((e) => !e.archived_at), `Purged ${archived.length} archived entries`);
   };
   const csv = () => {
     const c =
       'Vendor,Facility,Date,Cost,Case Label,Product,Item#,Description,Qty,DateSubmitted,SubmittedBy\n' +
-      entries
+      activeEntries
         .map(
           (e) =>
             `"${e.vendor}","${e.facility}","${e.date}",${e.cost},"${e.case_label || ''}","${e.productName}","${e.productNumber || ''}","${e.description || ''}",${e.quantity || 1},"${e.dateSubmitted || ''}","${e.submittedBy || ''}"`
@@ -25592,7 +25607,7 @@ export default function Tracker() {
     const rows = [
       'Status,Vendor,Date,Product,Sale Amount,Rate %,Expected Commission,Received Commission,Difference,Case Label',
     ];
-    const fe = entries.filter(
+    const fe = activeEntries.filter(
       (e) =>
         (commVf === 'All' || e.vendor === commVf) &&
         (commMf === 'all' ||
@@ -25653,14 +25668,15 @@ export default function Tracker() {
     notify('Reconciliation exported!');
   };
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const allYears = [...new Set(entries.map((e) => e.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+  const activeEntries = entries.filter((e) => !e.archived_at);
+  const allYears = [...new Set(activeEntries.map((e) => e.date?.slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
   const monthsInYear = [...new Set(
-    entries
+    activeEntries
       .filter((e) => yearF === 'All' || e.date?.startsWith(yearF))
       .map((e) => e.date?.slice(5, 7))
       .filter(Boolean)
   )].sort();
-  let fil = entries;
+  let fil = activeEntries;
   if (yearF !== 'All') fil = fil.filter((e) => e.date?.startsWith(yearF));
   if (monthF !== 'All') fil = fil.filter((e) => e.date?.slice(5, 7) === monthF);
   if (vf !== 'All') fil = fil.filter((e) => e.vendor === vf);
@@ -25679,9 +25695,9 @@ export default function Tracker() {
     fil = [...fil].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   else if (sort === 'cost-desc') fil = [...fil].sort((a, b) => b.cost - a.cost);
   else if (sort === 'vendor') fil = [...fil].sort((a, b) => a.vendor.localeCompare(b.vendor));
-  const total = entries.reduce((s, e) => s + e.cost, 0);
-  const uv = [...new Set(entries.map((e) => e.vendor))];
-  const up = [...new Set(entries.map((e) => e.productName).filter(Boolean))].length;
+  const total = activeEntries.reduce((s, e) => s + e.cost, 0);
+  const uv = [...new Set(activeEntries.map((e) => e.vendor))];
+  const up = [...new Set(activeEntries.map((e) => e.productName).filter(Boolean))].length;
   const staticVendors = Object.keys(CFG.sheets);
   const savedVendors = [...new Set(savedSheets.map((s) => s.vendor))].filter(
     (v) => !staticVendors.includes(v),
@@ -25800,7 +25816,7 @@ export default function Tracker() {
             }}
           >
             <span>
-              {entries.length} items · {up} products · {fmt(total)}
+              {activeEntries.length} items · {up} products · {fmt(total)}
             </span>
             <span
               style={{
@@ -25910,6 +25926,7 @@ export default function Tracker() {
             { k: 'prices', l: 'Price Sheets', e: '💰' },
             { k: 'vendors', l: 'Vendors', e: '🏢' },
             { k: 'summary', l: 'Summary', e: '📊' },
+            { k: 'archive', l: 'Archive', e: '🗄️' },
             { k: 'emails', l: 'Emails', e: '📧' },
           ].map((t) => (
             <button
@@ -25955,7 +25972,7 @@ export default function Tracker() {
               <select
                 value={yearF}
                 onChange={(e) => { setYearF(e.target.value); setMonthF('All'); }}
-                style={{ ...S.inp, width: 80 }}
+                style={{ ...S.inp, width: 'auto', minWidth: 120 }}
               >
                 <option value="All">All Years</option>
                 {allYears.map((y) => (
@@ -25965,7 +25982,7 @@ export default function Tracker() {
               <select
                 value={monthF}
                 onChange={(e) => setMonthF(e.target.value)}
-                style={{ ...S.inp, width: 72 }}
+                style={{ ...S.inp, width: 'auto', minWidth: 140 }}
               >
                 <option value="All">All Months</option>
                 {monthsInYear.map((m) => (
@@ -26006,7 +26023,7 @@ export default function Tracker() {
                 <option value="cost-desc">Cost ↓</option>
                 <option value="vendor">Vendor</option>
               </select>
-              {sys === 'test' && entries.length > 0 && (
+              {sys === 'test' && activeEntries.length > 0 && (
                 <button
                   onClick={clearAll}
                   style={{ ...S.inp, background: '#1a0a0a', color: '#f66', border: '1px solid #3e1e1e', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600 }}
@@ -26022,7 +26039,7 @@ export default function Tracker() {
               <div style={{ ...S.card, textAlign: 'center', padding: '40px' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📦</div>
                 <div style={{ fontWeight: 600 }}>
-                  {entries.length === 0 ? 'No products yet' : 'No matches'}
+                  {activeEntries.length === 0 ? 'No products yet' : 'No matches'}
                 </div>
               </div>
             ) : (
@@ -27008,7 +27025,7 @@ export default function Tracker() {
           <div className="fade">
             {(() => {
               const cases = {};
-              entries.forEach((e) => {
+              activeEntries.forEach((e) => {
                 const k = (e.case_label || '') + '|' + e.date;
                 if (!cases[k])
                   cases[k] = {
@@ -27332,7 +27349,7 @@ export default function Tracker() {
               </div>
             </div>
             {(() => {
-              const mm = entries
+              const mm = activeEntries
                 .filter((e) => e.vendor === 'MiMedx')
                 .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
               if (mm.length === 0)
@@ -28313,7 +28330,7 @@ export default function Tracker() {
                     'Nov',
                     'Dec',
                   ];
-                  const fe = entries.filter((e) => {
+                  const fe = activeEntries.filter((e) => {
                     if (commVf !== 'All' && e.vendor !== commVf) return false;
                     if (commMf !== 'all' && e.date) {
                       const d = new Date(e.date);
@@ -28996,7 +29013,7 @@ export default function Tracker() {
                 }}
               >
                 {uv.map((v) => {
-                  const rows = entries.filter((e) => e.vendor === v);
+                  const rows = activeEntries.filter((e) => e.vendor === v);
                   const t = rows.reduce((s, r) => s + r.cost, 0);
                   const nst = rows.reduce((s, r) => s + r.cost, 0);
                   return (
@@ -29076,7 +29093,7 @@ export default function Tracker() {
               ];
               const availMonths = [
                 ...new Set(
-                  entries
+                  activeEntries
                     .filter((e) => e.date)
                     .map((e) => {
                       const d = new Date(e.date);
@@ -29086,8 +29103,8 @@ export default function Tracker() {
               ].sort();
               const fe =
                 sumMonth === 'all'
-                  ? entries
-                  : entries.filter((e) => {
+                  ? activeEntries
+                  : activeEntries.filter((e) => {
                       if (!e.date) return false;
                       const d = new Date(e.date);
                       return (
@@ -29358,6 +29375,86 @@ export default function Tracker() {
                     <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
                       <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
                       <div style={{ fontWeight: 600 }}>No data for {mLabel}</div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {tab === 'archive' && (
+          <div className="fade">
+            {(() => {
+              const archived = entries.filter((e) => e.archived_at).sort((a, b) => (b.archived_at || '').localeCompare(a.archived_at || ''));
+              return (
+                <>
+                  <div style={{ ...S.card, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>🗄️ Archive</div>
+                      <div style={{ fontSize: 11, color: '#556' }}>
+                        {archived.length} archived {archived.length === 1 ? 'entry' : 'entries'} — restore or permanently delete
+                      </div>
+                    </div>
+                    {archived.length > 0 && (
+                      <button
+                        onClick={purgeArchived}
+                        style={{ ...S.inp, width: 'auto', background: '#1a0a0a', color: '#f66', border: '1px solid #3e1e1e', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 12 }}
+                      >
+                        Purge All ({archived.length})
+                      </button>
+                    )}
+                  </div>
+                  {archived.length === 0 ? (
+                    <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
+                      <div style={{ fontSize: 28, marginBottom: 8 }}>🗄️</div>
+                      <div style={{ fontWeight: 600 }}>No archived entries</div>
+                    </div>
+                  ) : (
+                    <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                          <thead>
+                            <tr>
+                              {['Vendor', 'Product', 'Cost', 'Date', 'Archived', 'Actions'].map((h) => (
+                                <th key={h} style={{ padding: '10px 8px', fontSize: 10, fontWeight: 700, color: '#446', textAlign: 'left', borderBottom: '1px solid #1a1a28', background: '#09091a', whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {archived.map((e) => (
+                              <tr key={e.id} className="hr" style={{ borderBottom: '1px solid #111118' }}>
+                                <td style={{ padding: '7px 8px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{e.vendor}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#aac' }}>
+                                  <div>{e.productName}</div>
+                                  {e.description && <div style={{ fontSize: 10, color: '#556' }}>{e.description}</div>}
+                                </td>
+                                <td style={{ padding: '7px 8px', fontSize: 12, fontFamily: 'monospace', color: '#6f6', whiteSpace: 'nowrap' }}>{fmt(e.cost)}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#889', whiteSpace: 'nowrap' }}>{e.date}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 10, color: '#f80', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                                  {e.archived_at ? new Date(e.archived_at).toLocaleDateString() : '—'}
+                                </td>
+                                <td style={{ padding: '7px 8px 7px 12px', whiteSpace: 'nowrap' }}>
+                                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                    <button
+                                      onClick={() => restoreEntry(e.id)}
+                                      style={{ background: '#0a1a0a', border: '1px solid #1e3e1e', color: '#4f4', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
+                                    >
+                                      Restore
+                                    </button>
+                                    <button
+                                      onClick={() => permanentlyDelete(e.id)}
+                                      style={{ background: 'none', border: 'none', color: '#f44', cursor: 'pointer', fontSize: 11, opacity: 0.5, paddingRight: 6, flexShrink: 0 }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </>
@@ -29674,7 +29771,7 @@ export default function Tracker() {
                 Attach a file directly to an existing case/vendor
               </div>
               {(() => {
-                const pts = [...new Set(entries.map((e) => (e.case_label || '') + '|' + e.date))].map((k) => {
+                const pts = [...new Set(activeEntries.map((e) => (e.case_label || '') + '|' + e.date))].map((k) => {
                   const [p, d] = k.split('|');
                   return { label: p + ' — ' + d, value: k };
                 });
@@ -29683,7 +29780,7 @@ export default function Tracker() {
                   snapForm.case_label && !isNew
                     ? [
                         ...new Set(
-                          entries
+                          activeEntries
                             .filter((e) => (e.case_label || '') + '|' + e.date === snapForm.case_label)
                             .map((e) => e.vendor)
                         ),

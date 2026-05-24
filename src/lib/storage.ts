@@ -17,6 +17,7 @@ interface RawEntry {
   quantity?: number | string;
   dateSubmitted?: string;
   submittedBy?: string;
+  archived_at?: string | null;
 }
 
 interface DbRow {
@@ -33,6 +34,7 @@ interface DbRow {
   quantity?: number;
   date_submitted?: string | null;
   submitted_by?: string | null;
+  archived_at?: string | null;
 }
 
 const PRODUCTS_SUFFIX = '-products-v3';
@@ -53,6 +55,7 @@ function toDbRow(e: RawEntry, systemId: string, userId: string) {
     quantity: Number(e.quantity) || 1,
     date_submitted: e.dateSubmitted || null,
     submitted_by: e.submittedBy || null,
+    archived_at: e.archived_at ?? null,
   };
 }
 
@@ -70,6 +73,7 @@ function fromDbRow(r: DbRow) {
     quantity: r.quantity ?? 1,
     dateSubmitted: r.date_submitted ?? '',
     submittedBy: r.submitted_by ?? '',
+    archived_at: r.archived_at ?? null,
   };
 }
 
