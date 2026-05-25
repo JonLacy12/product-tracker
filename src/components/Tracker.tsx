@@ -24904,6 +24904,7 @@ const SYSTEMS = {
 };
 const fmt = (n) =>
   '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const lineTotal = (e) => (Number(e.cost) || 0) * (Number(e.quantity) || 1);
 export default function Tracker() {
   const [sys, setSys] = useState('test');
   const [sysReady, setSysReady] = useState(false);
@@ -25636,11 +25637,11 @@ export default function Tracker() {
   };
   const csv = () => {
     const c =
-      'Vendor,Facility,Date,Cost,Case Label,Product,Item#,Description,Qty,DateSubmitted,SubmittedBy\n' +
+      'Vendor,Facility,Date,Cost,Case Label,Product,Item#,Description,Qty,Extended,DateSubmitted,SubmittedBy\n' +
       activeEntries
         .map(
           (e) =>
-            `"${e.vendor}","${e.facility}","${e.date}",${e.cost},"${e.case_label || ''}","${e.productName}","${e.productNumber || ''}","${e.description || ''}",${e.quantity || 1},"${e.dateSubmitted || ''}","${e.submittedBy || ''}"`
+            `"${e.vendor}","${e.facility}","${e.date}",${e.cost},"${e.case_label || ''}","${e.productName}","${e.productNumber || ''}","${e.description || ''}",${e.quantity || 1},${lineTotal(e)},"${e.dateSubmitted || ''}","${e.submittedBy || ''}"`
         )
         .join('\n');
     const a = document.createElement('a');
@@ -25701,14 +25702,14 @@ export default function Tracker() {
     const matchedIds = new Set();
     fe.forEach((e) => {
       const rate = getRate(e.vendor, e.productName);
-      const exp = rate ? (e.cost * rate) / 100 : 0;
+      const exp = rate ? (lineTotal(e) * rate) / 100 : 0;
       const match = cr.find(
         (r) =>
           r.vendor === e.vendor &&
           r.date === e.date &&
           !matchedIds.has(r.id) &&
           (r.product?.toLowerCase().includes(e.productName?.toLowerCase().slice(0, 8)) ||
-            Math.abs(r.saleAmount - e.cost) < 1)
+            Math.abs(r.saleAmount - lineTotal(e)) < 1)
       );
       let status = 'Missing',
         received = 0;
@@ -25727,7 +25728,7 @@ export default function Tracker() {
       }
       const diff = received - exp;
       rows.push(
-        `"${status}","${e.vendor}","${e.date}","${e.productName}",${e.cost},${rate || 0},${exp.toFixed(2)},${received.toFixed(2)},${diff.toFixed(2)},"${e.case_label || ''}"`
+        `"${status}","${e.vendor}","${e.date}","${e.productName}",${lineTotal(e)},${rate || 0},${exp.toFixed(2)},${received.toFixed(2)},${diff.toFixed(2)},"${e.case_label || ''}"`
       );
     });
     cr.filter((r) => !matchedIds.has(r.id)).forEach((r) => {
@@ -25764,9 +25765,9 @@ export default function Tracker() {
     fil = [...fil].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   else if (sort === 'date-asc')
     fil = [...fil].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  else if (sort === 'cost-desc') fil = [...fil].sort((a, b) => b.cost - a.cost);
+  else if (sort === 'cost-desc') fil = [...fil].sort((a, b) => lineTotal(b) - lineTotal(a));
   else if (sort === 'vendor') fil = [...fil].sort((a, b) => a.vendor.localeCompare(b.vendor));
-  const total = activeEntries.reduce((s, e) => s + e.cost, 0);
+  const total = activeEntries.reduce((s, e) => s + lineTotal(e), 0);
   const uv = [...new Set(activeEntries.map((e) => e.vendor))];
   const up = [...new Set(activeEntries.map((e) => e.productName).filter(Boolean))].length;
   const staticVendors = Object.keys(CFG.sheets);
@@ -26103,7 +26104,7 @@ export default function Tracker() {
                 </button>
               )}
               <span style={{ fontSize: 11, color: '#445', marginLeft: 'auto' }}>
-                {fil.length} items · {fmt(fil.reduce((s, e) => s + e.cost, 0))}
+                {fil.length} items · {fmt(fil.reduce((s, e) => s + lineTotal(e), 0))}
               </span>
             </div>
             {fil.length === 0 ? (
@@ -27147,7 +27148,7 @@ export default function Tracker() {
                   };
                 cases[k].items.push(e);
                 cases[k].vendors.add(e.vendor);
-                cases[k].total += e.cost;
+                cases[k].total += lineTotal(e);
                 if (e.facility) cases[k].facility = e.facility;
               });
               const sorted = Object.values(cases).sort((a, b) =>
@@ -27294,7 +27295,7 @@ export default function Tracker() {
                                 }}
                               >
                                 <span>
-                                  {vendor} — {fmt(items.reduce((s, e) => s + e.cost, 0))}
+                                  {vendor} — {fmt(items.reduce((s, e) => s + lineTotal(e), 0))}
                                 </span>
                                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                   <button
@@ -27468,7 +27469,7 @@ export default function Tracker() {
                     <div style={{ fontWeight: 600 }}>No MiMedx products yet</div>
                   </div>
                 );
-              const total = mm.reduce((s, e) => s + e.cost, 0);
+              const total = mm.reduce((s, e) => s + lineTotal(e), 0);
               return (
                 <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
                   <div style={{ overflowX: 'auto' }}>
@@ -28466,7 +28467,7 @@ export default function Tracker() {
                   // Build expected commissions from usage
                   const expected = fe.map((e) => {
                     const rate = getRate(e.vendor, e.productName);
-                    const expComm = rate ? (e.cost * rate) / 100 : null;
+                    const expComm = rate ? (lineTotal(e) * rate) / 100 : null;
                     return { ...e, rate, expComm };
                   });
                   const totalExpected = expected.reduce((s, e) => s + (e.expComm || 0), 0);
@@ -28483,7 +28484,7 @@ export default function Tracker() {
                         (r.product
                           ?.toLowerCase()
                           .includes(e.productName?.toLowerCase().slice(0, 8)) ||
-                          Math.abs(r.saleAmount - e.cost) < 1)
+                          Math.abs(r.saleAmount - lineTotal(e)) < 1)
                     );
                     if (match) {
                       matchedIds.add(match.id);
@@ -28642,7 +28643,7 @@ export default function Tracker() {
                                           color: '#889',
                                         }}
                                       >
-                                        {fmt(r.cost)}
+                                        {fmt(lineTotal(r))}
                                       </td>
                                       <td
                                         style={{
@@ -29123,8 +29124,8 @@ export default function Tracker() {
               >
                 {uv.map((v) => {
                   const rows = activeEntries.filter((e) => e.vendor === v);
-                  const t = rows.reduce((s, r) => s + r.cost, 0);
-                  const nst = rows.reduce((s, r) => s + r.cost, 0);
+                  const t = rows.reduce((s, r) => s + lineTotal(r), 0);
+                  const nst = rows.reduce((s, r) => s + lineTotal(r), 0);
                   return (
                     <div key={v} style={S.card}>
                       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{v}</div>
@@ -29221,7 +29222,7 @@ export default function Tracker() {
                         sumMonth
                       );
                     });
-              const mTotal = fe.reduce((s, e) => s + e.cost, 0);
+              const mTotal = fe.reduce((s, e) => s + lineTotal(e), 0);
               const mUp = [...new Set(fe.map((e) => e.productName))].length;
               const mUv = [...new Set(fe.map((e) => e.vendor))];
               const mLabel =
@@ -29271,7 +29272,7 @@ export default function Tracker() {
                       { l: 'ENTRIES', v: fe.length, c: '#f80' },
                       {
                         l: 'NORTHSIDE',
-                        v: fmt(fe.reduce((s, e) => s + e.cost, 0)),
+                        v: fmt(fe.reduce((s, e) => s + lineTotal(e), 0)),
                         c: '#f0a',
                       },
                       { l: 'PRODUCTS', v: mUp, c: '#6af' },
@@ -29303,7 +29304,7 @@ export default function Tracker() {
                         fe.forEach((e) => {
                           if (!vb[e.vendor]) vb[e.vendor] = { count: 0, cost: 0 };
                           vb[e.vendor].count++;
-                          vb[e.vendor].cost += e.cost;
+                          vb[e.vendor].cost += lineTotal(e);
                         });
                         return Object.entries(vb)
                           .sort((a, b) => b[1].cost - a[1].cost)
@@ -29354,7 +29355,7 @@ export default function Tracker() {
                         fe.forEach((e) => {
                           c[e.productName] = c[e.productName] || { n: 0, cost: 0 };
                           c[e.productName].n++;
-                          c[e.productName].cost += e.cost;
+                          c[e.productName].cost += lineTotal(e);
                         });
                         return Object.entries(c)
                           .sort((a, b) => b[1].n - a[1].n)
@@ -29413,7 +29414,7 @@ export default function Tracker() {
                               items: 0,
                               vendors: new Set(),
                             };
-                          pc[k].cost += e.cost;
+                          pc[k].cost += lineTotal(e);
                           pc[k].items++;
                           pc[k].vendors.add(e.vendor);
                         });
