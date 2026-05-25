@@ -17,3 +17,7 @@ pnpm-debug.log*
 *.sln
 *.sw?
 supabase/.temp/
+
+# ignore all env files except the example
+.env*
+!.env.example
