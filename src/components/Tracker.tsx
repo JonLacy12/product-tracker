@@ -18,7 +18,7 @@ const VENDORS = [
   'Eminent',
   'ISTO',
   'MiMedx',
-  'Providence',
+  'Providence Medical Technology',
   'Royal',
   'SpinalSimplicity',
   'Spinewave',
@@ -27,6 +27,15 @@ const VENDORS = [
   'Xtant',
   'ZavationCorelink',
 ];
+function normalizeVendor(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return trimmed;
+  const lower = trimmed.toLowerCase();
+  return VENDORS.find((v) => {
+    const vl = v.toLowerCase();
+    return vl.includes(lower) || lower.includes(vl);
+  }) ?? trimmed;
+}
 const NS = [
   { p: 'OsteoSelect', i: '309005', d: 'OsteoSelect DBM Putty 0.5cc', f: 42.5 },
   { p: 'OsteoSelect', i: '309010', d: 'OsteoSelect DBM Putty 1.0cc', f: 85 },
@@ -25420,7 +25429,7 @@ export default function Tracker() {
         if (!item.checked) continue;
         newEntries.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-          vendor: item.vendor || '',
+          vendor: normalizeVendor(item.vendor || ''),
           facility: normalizeFacility(facility, form.facility),
           date: date || form.date,
           cost: Number(item.cost) || 0,
@@ -25486,7 +25495,12 @@ export default function Tracker() {
       try {
         const s = await loadData();
         if (s && s.length > 0) {
-          setEntries(s);
+          const normalized = s.map((e) => {
+            const nv = normalizeVendor(e.vendor);
+            return nv !== e.vendor ? { ...e, vendor: nv } : e;
+          });
+          setEntries(normalized);
+          if (normalized.some((e, i) => e !== s[i])) await saveData(normalized);
         }
         setStatus('connected');
       } catch {
@@ -25554,7 +25568,7 @@ export default function Tracker() {
     }
     const e = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      vendor: form.vendor,
+      vendor: normalizeVendor(form.vendor),
       facility: form.facility,
       date: form.date,
       cost: Number(form.cost),
