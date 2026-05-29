@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSessionStore } from '@/store/useSessionStore';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+import { AdminPanel } from "@/components/AdminPanel";
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthScreen } from '@/components/AuthScreen';
@@ -17,7 +18,7 @@ function AppShell() {
   if (authLoading) return null;
   if (!session) return <AuthScreen />;
   if (locked) return <LockScreen />;
-  return <Tracker />;
+  return <><Tracker /><AdminPanel /></>;
 }
 
 export default function App() {

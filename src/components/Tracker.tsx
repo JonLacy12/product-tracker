@@ -24905,6 +24905,16 @@ const SYSTEMS = {
 const fmt = (n) =>
   '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const lineTotal = (e) => (Number(e.cost) || 0) * (Number(e.quantity) || 1);
+const canonicalProductName = (raw) =>
+  (raw || '').replace(/(\d[\d.]*)\s*[xX]\s*(\d)/g, '$1 x $2').replace(/\s+/g, ' ').trim();
+const canonicalProductKey = (name) =>
+  (name || '')
+    .toLowerCase()
+    .replace(/(\d)\s*x\s*(\d)/g, '$1x$2')   // normalize "6.5 x 50" -> "6.5x50"
+    .replace(/\s+/g, ' ')                    // collapse whitespace
+    .trim()
+    .replace(/[^a-z0-9]/g, '')               // remove spaces/punctuation for the key
+    .replace(/s$/, '');                      // ignore trailing plurals
 export default function Tracker() {
   const [sys, setSys] = useState('test');
   const [sysReady, setSysReady] = useState(false);
@@ -24996,6 +25006,8 @@ export default function Tracker() {
   const [extractDone, setExtractDone] = useState(0);
   const [extractTotal, setExtractTotal] = useState(0);
   const [reviewData, setReviewData] = useState(null);
+  const [reviewSubmittedBy, setReviewSubmittedBy] = useState('');
+  const [reviewCaseLabel, setReviewCaseLabel] = useState('');
   // Commission system
   const [commRates, setCommRates] = useState([]);
   const [commReports, setCommReports] = useState([]);
@@ -25140,6 +25152,46 @@ export default function Tracker() {
       return pp ? pp.pct : vr.pct || null;
     }
     return vr.pct || null;
+  };
+  const vendorMatches = (a, b) => {
+    const x = (a || '').toLowerCase().trim();
+    const y = (b || '').toLowerCase().trim();
+    return !!x && !!y && (x.includes(y) || y.includes(x));
+  };
+  const lookupCanonicalProduct = (vendor, itemNumber) => {
+    const iNum = (itemNumber || '').trim().toLowerCase();
+    if (!iNum) return null;
+    for (const sheet of savedSheets) {
+      if (!vendorMatches(sheet.vendor, vendor)) continue;
+      const match = (sheet.rows || []).find((r) => (r.i || '').trim().toLowerCase() === iNum);
+      if (match) return match;
+    }
+    for (const [v, facilities] of Object.entries(SHEETS_NS)) {
+      if (!vendorMatches(v, vendor)) continue;
+      for (const fac of Object.values(facilities)) {
+        const match = (fac.data || []).find((r) => (r.i || '').trim().toLowerCase() === iNum);
+        if (match) return match;
+      }
+    }
+    const hardcodedCatalogs = [
+      { vendor: 'Xtant', cats: NS },
+      { vendor: 'ISTO', cats: ISTO_NS },
+      { vendor: 'Spinewave', cats: SW_NS },
+      { vendor: 'Royal', cats: ROYAL_NS },
+      { vendor: 'Cellerate', cats: CELL_NS },
+      { vendor: 'MiMedx', cats: MIMEDX_NS },
+      { vendor: 'Sua Sponte', cats: SUA_SPONTE_NS },
+      { vendor: 'Choice', cats: CHOICE_NS },
+      { vendor: 'Zavation', cats: ZAVATION_NS },
+      { vendor: '4Web', cats: FOURWEB_NS },
+      { vendor: 'Life Spine', cats: LS_NS },
+    ];
+    for (const { vendor: cv, cats } of hardcodedCatalogs) {
+      if (!vendorMatches(cv, vendor)) continue;
+      const match = cats.find((r) => (r.i || '').trim().toLowerCase() === iNum);
+      if (match) return match;
+    }
+    return null;
   };
   const handleCommDocUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -25422,69 +25474,91 @@ export default function Tracker() {
   // Add future facilities here (e.g. Forsyth, Cherokee, Duluth, Lawrenceville) as needed.
   const normalizeFacility = (_raw, _fallback) => 'Northside';
   const saveExtracted = async () => {
+    // Snapshot BEFORE clearing state — setReviewData is async and reading
+    // reviewData afterward yields the cleared value, skipping uploads.
+    const snapshot = reviewData;
+    setReviewData(null);
+
+    // Fetch auth user once; if unavailable, uploads are skipped (ids stay null).
+    let authUser = null;
+    try { ({ data: { user: authUser } } = await supabase.auth.getUser()); } catch {}
+
+    // Upload each result's file and obtain a bill_sheets row id.
+    // Failures are non-blocking: set that slot to null and continue.
+    const billSheetIds = [];
+    for (const result of snapshot) {
+      if (!result.file || !result.sheet || !authUser) {
+        billSheetIds.push(null);
+        continue;
+      }
+      try {
+        const file = result.file;
+        const ext = file.type.includes('pdf') ? 'pdf' : file.type.includes('png') ? 'png' : 'jpg';
+        const uid_part = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+        const path = `${authUser.id}/${uid_part}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('bill-sheets')
+          .upload(path, file, { contentType: file.type });
+        if (uploadErr) {
+          notify('Bill sheet attach error: ' + (uploadErr.message || String(uploadErr)), false);
+          billSheetIds.push(null);
+          continue;
+        }
+        const { data: bsRow, error: insertErr } = await supabase
+          .from('bill_sheets')
+          .insert({
+            file_path: path,
+            file_type: file.type,
+            facility: result.sheet.facility || '',
+            date: result.sheet.date || form.date || '',
+            case_label: reviewCaseLabel || result.sheet.case_label || '',
+          })
+          .select()
+          .single();
+        if (insertErr) {
+          notify('Bill sheet attach error: ' + (insertErr.message || String(insertErr)), false);
+          billSheetIds.push(null);
+          continue;
+        }
+        billSheetIds.push(bsRow?.id ?? null);
+      } catch (err) {
+        notify('Bill sheet attach error: ' + (err && err.message ? err.message : String(err)), false);
+        billSheetIds.push(null);
+      }
+    }
+
+    // Build entries from the snapshot, each carrying the id for its source result.
     const newEntries = [];
-    for (const result of reviewData) {
-      if (!result.sheet) continue;
+    snapshot.forEach((result, ri) => {
+      if (!result.sheet) return;
       const { facility, date, case_label, items } = result.sheet;
       for (const item of items) {
         if (!item.checked) continue;
+        const entryVendor = normalizeVendor(item.vendor || '');
+        const catalogMatch = lookupCanonicalProduct(entryVendor, item.item_number);
         newEntries.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-          vendor: normalizeVendor(item.vendor || ''),
+          vendor: entryVendor,
           facility: normalizeFacility(facility, form.facility),
           date: date || form.date,
           cost: Number(item.cost) || 0,
-          case_label: case_label || '',
-          productName: item.product_name || '',
+          case_label: reviewCaseLabel || case_label || '',
+          productName: catalogMatch ? catalogMatch.d : (item.product_name || ''),
           productNumber: item.item_number || '',
           description: item.description || '',
           quantity: Number(item.quantity) || 1,
           dateSubmitted: new Date().toISOString().slice(0, 10),
-          submittedBy: form.submittedBy || '',
-          bill_sheet_id: null,
+          submittedBy: reviewSubmittedBy || form.submittedBy || '',
+          bill_sheet_id: billSheetIds[ri] ?? null,
         });
       }
-    }
-    setReviewData(null);
+    });
+
     if (newEntries.length === 0) return;
 
-    // Attempt to upload the primary file and get a bill_sheets id.
-    // Non-blocking: entries always save; bill_sheet_id is best-effort.
-    let billSheetId = null;
-    const primaryResult = reviewData.find((r) => r.file && r.sheet);
-    if (primaryResult) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const file = primaryResult.file;
-        const ext = file.type.includes('pdf') ? 'pdf' : file.type.includes('png') ? 'png' : 'jpg';
-        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('bill-sheets')
-          .upload(path, file, { contentType: file.type });
-        if (!uploadErr) {
-          const primarySheet = primaryResult.sheet;
-          const { data: bsRow, error: insertErr } = await supabase
-            .from('bill_sheets')
-            .insert({
-              file_path: path,
-              file_type: file.type,
-              facility: primarySheet.facility || '',
-              date: primarySheet.date || form.date || '',
-              case_label: primarySheet.case_label || '',
-            })
-            .select()
-            .single();
-          if (!insertErr && bsRow) billSheetId = bsRow.id;
-        }
-      } catch {
-        // Non-blocking — fall through with billSheetId = null
-      }
-    }
-    if (billSheetId) {
-      for (const e of newEntries) e.bill_sheet_id = billSheetId;
-    }
-
     await save([...entries, ...newEntries], null);
+    setReviewSubmittedBy('');
+    setReviewCaseLabel('');
     notify(`${newEntries.length} item${newEntries.length !== 1 ? 's' : ''} saved`);
   };
   const notify = (m, ok = true) => {
@@ -25523,7 +25597,7 @@ export default function Tracker() {
   const save = async (u, m) => {
     const chrono = [...u].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     setEntries(chrono);
-    if (status === 'connected') await saveData(chrono);
+    await saveData(chrono);
     if (m) notify(m);
   };
   const refresh = async () => {
@@ -25600,8 +25674,11 @@ export default function Tracker() {
   };
   const clearAll = async () => {
     const active = entries.filter((e) => !e.archived_at);
-    if (!window.confirm(`Permanently delete all ${active.length} test products? This cannot be undone.`)) return;
-    await save(entries.filter((e) => e.archived_at), `Cleared all ${active.length} entries`);
+    if (!active.length) return;
+    if (!window.confirm(`Archive all ${active.length} test products? You can restore them from the archive.`)) return;
+    const now = new Date().toISOString();
+    const updated = entries.map((e) => e.archived_at ? e : { ...e, archived_at: now });
+    await save(updated, `Archived all ${active.length} entries`);
   };
   const restoreEntry = async (id) => {
     const e = entries.find((x) => x.id === id);
@@ -26633,6 +26710,26 @@ export default function Tracker() {
                   </div>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                    <div className="form-row">
+                      <label className="label">Submitted by</label>
+                      <input
+                        className="input"
+                        placeholder="Team member name"
+                        value={reviewSubmittedBy}
+                        onChange={(e) => setReviewSubmittedBy(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label className="label">Case label</label>
+                      <input
+                        className="input"
+                        placeholder="e.g. Case A, Tue OR"
+                        value={reviewCaseLabel}
+                        onChange={(e) => setReviewCaseLabel(e.target.value)}
+                      />
+                    </div>
+                  </div>
                   {reviewData.map((result, si) =>
                     result.error ? (
                       <div
@@ -26927,7 +27024,7 @@ export default function Tracker() {
                   }}
                 >
                   <button
-                    onClick={() => setReviewData(null)}
+                    onClick={() => { setReviewData(null); setReviewSubmittedBy(''); setReviewCaseLabel(''); }}
                     className="hb"
                     style={{
                       flex: 1,
@@ -29151,31 +29248,31 @@ export default function Tracker() {
                           </span>
                         )}
                       </div>
-                      {rows.map((e, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            padding: '3px 0',
-                            fontSize: 11,
-                            borderBottom: '1px solid #111118',
-                          }}
-                        >
-                          <span style={{ color: '#889' }}>
-                            {e.productName}
-                            {e.description ? ` (${e.description})` : ''}
-                          </span>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <span style={{ color: fc(e.facility), fontSize: 9, fontWeight: 700 }}>
-                              {fl(e.facility)}
-                            </span>
-                            <span style={{ color: '#6f6', fontFamily: 'monospace' }}>
-                              {fmt(e.cost)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                      {(() => {
+                        const groups = {};
+                        rows.forEach((e) => {
+                          const catalogEntry = lookupCanonicalProduct(e.vendor, e.productNumber);
+                          const iNum = (e.productNumber || '').trim().toUpperCase();
+                          const key = (catalogEntry && iNum) ? iNum : canonicalProductKey(e.productName);
+                          const displayName = catalogEntry ? catalogEntry.d : canonicalProductName(e.productName);
+                          if (!groups[key]) groups[key] = { name: displayName, qty: 0, total: 0 };
+                          groups[key].qty += Number(e.quantity) || 1;
+                          groups[key].total += lineTotal(e);
+                        });
+                        return Object.values(groups)
+                          .sort((a, b) => b.total - a.total)
+                          .map((g, i) => (
+                            <div
+                              key={i}
+                              style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11, borderBottom: '1px solid #111118' }}
+                            >
+                              <span style={{ color: '#889' }}>{g.name}</span>
+                              <span style={{ color: '#6f6', fontFamily: 'monospace', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                                ×{g.qty} — {fmt(g.total)}
+                              </span>
+                            </div>
+                          ));
+                      })()}
                     </div>
                   );
                 })}
@@ -29353,14 +29450,19 @@ export default function Tracker() {
                       {(() => {
                         const c = {};
                         fe.forEach((e) => {
-                          c[e.productName] = c[e.productName] || { n: 0, cost: 0 };
-                          c[e.productName].n++;
-                          c[e.productName].cost += lineTotal(e);
+                          const iNum = (e.productNumber || '').trim().toUpperCase();
+                          const catEntry = lookupCanonicalProduct(e.vendor, iNum);
+                          const key = (catEntry && iNum) ? iNum : canonicalProductKey(e.productName);
+                          const displayName = catEntry ? catEntry.d : canonicalProductName(e.productName);
+                          if (!c[key]) c[key] = { n: 0, cost: 0, name: displayName, itemNumber: '' };
+                          if (catEntry && iNum) c[key].itemNumber = iNum;
+                          c[key].n += Number(e.quantity) || 1;
+                          c[key].cost += lineTotal(e);
                         });
-                        return Object.entries(c)
-                          .sort((a, b) => b[1].n - a[1].n)
+                        return Object.values(c)
+                          .sort((a, b) => b.n - a.n)
                           .slice(0, 15)
-                          .map(([n, d], i) => (
+                          .map((d, i) => (
                             <div
                               key={i}
                               className="hr"
@@ -29372,10 +29474,9 @@ export default function Tracker() {
                                 borderBottom: '1px solid #111118',
                               }}
                             >
-                              <span
-                                style={{ fontSize: 13, fontWeight: 600, flex: 1, color: '#cdf' }}
-                              >
-                                {n}
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#cdf', flex: 1 }}>{d.name}</span>
+                              <span style={{ fontSize: 10, color: '#556', fontFamily: 'monospace', width: 80, textAlign: 'left', flexShrink: 0 }}>
+                                {d.itemNumber || '—'}
                               </span>
                               <span style={{ fontSize: 11, color: '#f80', fontWeight: 700 }}>
                                 {d.n}x
@@ -29419,7 +29520,7 @@ export default function Tracker() {
                           pc[k].vendors.add(e.vendor);
                         });
                         return Object.values(pc)
-                          .sort((a, b) => b.cost - a.cost)
+                          .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
                           .map((p, i) => (
                             <div
                               key={i}
@@ -29522,42 +29623,41 @@ export default function Tracker() {
                     </div>
                   ) : (
                     <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                      <div style={{ overflowX: 'auto', maxHeight: 500 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1250 }}>
                           <thead>
                             <tr>
-                              {['Vendor', 'Product', 'Cost', 'Date', 'Archived', 'Actions'].map((h) => (
-                                <th key={h} style={{ padding: '10px 8px', fontSize: 10, fontWeight: 700, color: '#446', textAlign: 'left', borderBottom: '1px solid #1a1a28', background: '#09091a', whiteSpace: 'nowrap' }}>{h}</th>
+                              {['FAC', 'VENDOR', 'DOS', 'PRODUCT', 'ITEM#', 'DESCRIPTION', 'QTY', 'COST', 'CASE LABEL', 'DATE SUBMITTED', 'BY', 'ARCHIVED', ''].map((h, i) => (
+                                <th key={i} style={{ padding: '10px 8px', textAlign: 'left', fontSize: 9, fontWeight: 700, color: '#f80', borderBottom: '1px solid #1a1a28', background: '#08080e', position: 'sticky', top: 0, zIndex: 1, letterSpacing: 1, whiteSpace: 'nowrap' }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {archived.map((e) => (
-                              <tr key={e.id} className="hr" style={{ borderBottom: '1px solid #111118' }}>
-                                <td style={{ padding: '7px 8px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{e.vendor}</td>
-                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#aac' }}>
-                                  <div>{e.productName}</div>
-                                  {e.description && <div style={{ fontSize: 10, color: '#556' }}>{e.description}</div>}
+                            {archived.map((e, i) => (
+                              <tr key={e.id || i} className="hr" style={{ borderBottom: '1px solid #0e0e18' }}>
+                                <td style={{ padding: '7px 8px' }}>
+                                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: e.facility === 'Northside' ? '#200020' : '#001a2a', color: fc(e.facility), border: `1px solid ${e.facility === 'Northside' ? '#401040' : '#003050'}` }}>
+                                    {fl(e.facility)}
+                                  </span>
                                 </td>
-                                <td style={{ padding: '7px 8px', fontSize: 12, fontFamily: 'monospace', color: '#6f6', whiteSpace: 'nowrap' }}>{fmt(e.cost)}</td>
-                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#889', whiteSpace: 'nowrap' }}>{e.date}</td>
-                                <td style={{ padding: '7px 8px', fontSize: 10, color: '#f80', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-                                  {e.archived_at ? new Date(e.archived_at).toLocaleDateString() : '—'}
-                                </td>
-                                <td style={{ padding: '7px 8px 7px 12px', whiteSpace: 'nowrap' }}>
-                                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                    <button
-                                      onClick={() => restoreEntry(e.id)}
-                                      style={{ background: '#0a1a0a', border: '1px solid #1e3e1e', color: '#4f4', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}
-                                    >
-                                      Restore
-                                    </button>
-                                    <button
-                                      onClick={() => permanentlyDelete(e.id)}
-                                      style={{ background: 'none', border: 'none', color: '#f44', cursor: 'pointer', fontSize: 11, opacity: 0.5, paddingRight: 6, flexShrink: 0 }}
-                                    >
-                                      ✕
-                                    </button>
+                                <td style={{ padding: '7px 8px', fontSize: 12, fontWeight: 600 }}>{e.vendor}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#667', fontFamily: 'monospace' }}>{e.date}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 13, fontWeight: 600, color: '#cdf' }}>{e.productName}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 10, fontFamily: 'monospace', color: '#556' }}>{e.productNumber || '—'}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#889', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || '—'}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 12, textAlign: 'center' }}>{e.quantity || 1}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 13, color: '#6f6', fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{fmt(e.cost)}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 13 }}>{e.case_label || '—'}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 10, color: '#6af', fontFamily: 'monospace' }}>{e.dateSubmitted || '—'}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 11, color: '#9be' }}>{e.submittedBy || '—'}</td>
+                                <td style={{ padding: '7px 8px', fontSize: 10, color: '#f80', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{e.archived_at ? new Date(e.archived_at).toLocaleDateString() : '—'}</td>
+                                <td style={{ padding: '7px 8px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {e.bill_sheet_id && (
+                                      <button onClick={() => openBillSheet(e.bill_sheet_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }} title="View bill sheet">📎</button>
+                                    )}
+                                    <button onClick={() => restoreEntry(e.id)} style={{ background: '#0a1a0a', border: '1px solid #1e3e1e', color: '#4f4', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}>Restore</button>
+                                    <button onClick={() => permanentlyDelete(e.id)} style={{ background: 'none', border: 'none', color: '#f44', cursor: 'pointer', fontSize: 11, opacity: 0.3 }}>✕</button>
                                   </div>
                                 </td>
                               </tr>
@@ -29819,7 +29919,9 @@ export default function Tracker() {
         )}
 
         {/* Floating Camera Button */}
+        <style>{`@media (min-width:768px){.floating-cam{top:auto!important;right:auto!important;bottom:20px!important;left:20px!important}}`}</style>
         <button
+          className="floating-cam"
           onClick={() => inboxRef.current?.click()}
           style={{
             position: 'fixed',

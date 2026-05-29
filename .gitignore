@@ -17,6 +17,11 @@ pnpm-debug.log*
 *.sln
 *.sw?
 supabase/.temp/
+*.bak
+*.bak2
+*.bak3
+*.bak4
+catalog_export/
 
 # ignore all env files except the example
 .env*

@@ -133,6 +133,13 @@ async function set(key: string, value: string, _scoped?: boolean): Promise<void>
       .map((r: { client_id: string }) => r.client_id)
       .filter((cid) => cid && !incomingIds.has(cid));
 
+    // SAFETY GUARD: never let an empty/failed-load state wipe a whole section.
+    if (toDelete.length > 0 && rows.length === 0) {
+      throw new Error(
+        `[storage] Blocked empty save for "${systemId}" — refusing to delete ${toDelete.length} rows with nothing to write back (likely a failed load). Data preserved.`
+      );
+    }
+
     if (toDelete.length) {
       await supabase
         .from('entries')
