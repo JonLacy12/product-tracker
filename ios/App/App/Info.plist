@@ -2,16 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Product Tracker uses the camera to scan bill sheets and extract product details automatically.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Product Tracker accesses your photos so you can scan existing bill sheet images.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Product Tracker may save scanned bill sheet images to your photo library.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Product Tracker</string>
+	<string>Product Tracker</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,8 +20,16 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Product Tracker uses the camera to scan bill sheets and extract product details automatically.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Product Tracker may save scanned bill sheet images to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Product Tracker accesses your photos so you can scan existing bill sheet images.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
