@@ -25193,6 +25193,39 @@ export default function Tracker() {
     }
     return null;
   };
+  // DB-first price lookup: overrides -> Supabase price sheets -> hardcoded fallback
+  const lookupCatalogPriceDB = (vendor, itemNumber, facility, overrides = []) => {
+    if (!itemNumber) return null;
+    const normItem = String(itemNumber).trim().toUpperCase().replace(/\s+/g, '');
+    const normFacility = (facility || '').trim();
+    let exactMatch = null;
+    let fallbackMatch = null;
+    for (const ov of overrides) {
+      if (String(ov.item_number || '').trim().toUpperCase().replace(/\s+/g, '') !== normItem) continue;
+      const ovFacility = (ov.facility || '').trim();
+      if (!ovFacility) {
+        if (!fallbackMatch) fallbackMatch = ov;
+      } else if (ovFacility === normFacility) {
+        exactMatch = ov;
+        break;
+      }
+    }
+    const ovHit = exactMatch || fallbackMatch;
+    if (ovHit) return { price: ovHit.price, matchedVendor: ovHit.vendor, source: 'override' };
+    const norm = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (vendor) {
+      for (const sh of savedSheets) {
+        if (!vendorMatches(sh.vendor, vendor)) continue;
+        const m = (sh.rows || []).find((x) => norm(x.i) === normItem);
+        if (m) return { price: m.f, matchedVendor: sh.vendor };
+      }
+    }
+    for (const sh of savedSheets) {
+      const m = (sh.rows || []).find((x) => norm(x.i) === normItem);
+      if (m) return { price: m.f, matchedVendor: sh.vendor };
+    }
+    return lookupCatalogPrice(vendor, itemNumber, facility, overrides);
+  };
   const handleCommDocUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -25318,7 +25351,7 @@ export default function Tracker() {
               case_label: preCaseLabel || '',
               items: (sheet.items || []).map((item) => {
                 const ocrCost = item.cost ?? 0;
-                const catalogResult = lookupCatalogPrice(
+                const catalogResult = lookupCatalogPriceDB(
                   item.vendor || preVendor,
                   item.item_number,
                   normalizedFacility,
@@ -25612,6 +25645,10 @@ export default function Tracker() {
     }
   };
   const lookup = (item, fac) => {
+    for (const sh of savedSheets) {
+      const m = (sh.rows || []).find((x) => String(x.i).trim() === String(item).trim());
+      if (m) return m.f;
+    }
     for (const cats of [NS, ISTO_NS, SW_NS, ROYAL_NS, CELL_NS, MIMEDX_NS, SUA_SPONTE_NS, CHOICE_NS, ZAVATION_NS, FOURWEB_NS, LS_NS]) {
       const m = cats.find((x) => x.i === item);
       if (m) return m.f;
